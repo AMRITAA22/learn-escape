@@ -1,0 +1,41 @@
+// client/src/App.tsx
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { StudyRoomsPage } from './pages/StudyRoomsPage'; // Import the new page
+import { RoomPage } from './pages/RoomPage';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Layout from './components/layout/Layout';
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+
+        {/* Protected routes with Layout */}
+        <Route 
+          path="/*" 
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Routes>
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/study-rooms" element={<StudyRoomsPage />} /> {/* Add this route */}
+                  <Route path="/room/:roomId" element={<RoomPage />} /> 
+                  <Route path="/" element={<DashboardPage />} />
+                </Routes>
+              </Layout>
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
