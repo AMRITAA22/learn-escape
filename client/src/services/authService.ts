@@ -22,9 +22,22 @@ const login = async (userData: any) => {
   return response.data;
 };
 
+
+const forgotPassword = async (email: string) => {
+    const response = await axios.post(API_URL + '/forgot-password', { email });
+    return response.data;
+};
+
+// Reset password with token
+const resetPassword = async (token: string, password: string) => {
+    const response = await axios.post(`${API_URL}/reset-password/${token}`, { password });
+    return response.data;
+};
 const authService = {
-  register,
-  login,
+    register,
+    login,
+    forgotPassword, // Add this
+    resetPassword, // Add this
 };
 
 export default authService;
