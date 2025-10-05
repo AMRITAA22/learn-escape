@@ -1,103 +1,93 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+interface Deck {
+  _id: string;
+  name: string;
+}
 
 interface Card {
-  id: number;
+  _id: string;
   question: string;
   answer: string;
-  deck: string;
+  deckId: string;
   interval: number;
   repetition: number;
   efactor: number;
-  nextReview: number;
+  nextReview: string;
 }
 
 export const FlashcardsPage = () => {
-  const [decks, setDecks] = useState<string[]>(['Default']);
-  const [selectedDeck, setSelectedDeck] = useState('Default');
-  const [cards, setCards] = useState<Card[]>(() => {
-    const saved = localStorage.getItem('flashcards');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [cards, setCards] = useState<Card[]>([]);
+  const [selectedDeck, setSelectedDeck] = useState<string>('');
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('flashcards', JSON.stringify(cards));
-  }, [cards]);
+    fetchData();
+  }, []);
 
-  // Add card
-  const addCard = () => {
-    if (!question.trim() || !answer.trim()) return;
-    const newCard: Card = {
-      id: Date.now(),
-      question,
-      answer,
-      deck: selectedDeck,
-      interval: 1,
-      repetition: 0,
-      efactor: 2.5,
-      nextReview: Date.now()
-    };
-    setCards([...cards, newCard]);
+  const fetchData = async () => {
+    const res = await axios.get('/api/flashcards', { withCredentials: true });
+    setDecks(res.data.decks);
+    setCards(res.data.cards);
+    if (res.data.decks.length > 0) setSelectedDeck(res.data.decks[0]._id);
+  };
+
+  const addDeck = async () => {
+    const name = prompt('Deck name?');
+    if (!name) return;
+    const res = await axios.post('/api/flashcards/deck', { name }, { withCredentials: true });
+    setDecks([...decks, res.data]);
+  };
+
+  const addCard = async () => {
+    if (!question || !answer) return;
+    const res = await axios.post(
+      '/api/flashcards/card',
+      { deckId: selectedDeck, question, answer },
+      { withCredentials: true }
+    );
+    setCards([...cards, res.data]);
     setQuestion('');
     setAnswer('');
   };
 
-  // SM2 algorithm
-  const reviewCard = (cardId: number, grade: number) => {
-    setCards(cards.map(c => {
-      if (c.id !== cardId) return c;
-      let { efactor, repetition, interval } = c;
-
-      if (grade < 3) {
-        repetition = 0;
-        interval = 1;
-      } else {
-        if (repetition === 0) interval = 1;
-        else if (repetition === 1) interval = 6;
-        else interval = Math.round(interval * efactor);
-
-        efactor = efactor + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02));
-        if (efactor < 1.3) efactor = 1.3;
-        repetition += 1;
-      }
-
-      const nextReview = Date.now() + interval * 24 * 60 * 60 * 1000;
-      return { ...c, efactor, repetition, interval, nextReview };
-    }));
+  const reviewCard = async (cardId: string, grade: number) => {
+    const res = await axios.post(`/api/flashcards/review/${cardId}`, { grade }, { withCredentials: true });
+    setCards(cards.map(c => (c._id === cardId ? res.data : c)));
   };
 
-  const dueCards = cards.filter(c => c.nextReview <= Date.now());
+  const dueCards = cards.filter(c => new Date(c.nextReview).getTime() <= Date.now());
 
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       <h1 className="text-3xl font-bold mb-4">Flashcards</h1>
 
-      {/* Deck selection */}
-      <div className="mb-4">
-        <label className="block font-semibold mb-1">Deck</label>
+      <div className="flex items-center space-x-3 mb-4">
         <select
           value={selectedDeck}
-          onChange={(e) => setSelectedDeck(e.target.value)}
+          onChange={e => setSelectedDeck(e.target.value)}
           className="border rounded p-2"
         >
-          {decks.map(deck => <option key={deck}>{deck}</option>)}
+          {decks.map(deck => <option key={deck._id} value={deck._id}>{deck.name}</option>)}
         </select>
+        <button onClick={addDeck} className="bg-gray-200 px-3 py-2 rounded hover:bg-gray-300">+ New Deck</button>
       </div>
 
-      {/* Add flashcard */}
       <div className="mb-4">
         <input
           className="border rounded p-2 w-full mb-2"
           placeholder="Question"
           value={question}
-          onChange={(e) => setQuestion(e.target.value)}
+          onChange={e => setQuestion(e.target.value)}
         />
         <input
           className="border rounded p-2 w-full mb-2"
           placeholder="Answer"
           value={answer}
-          onChange={(e) => setAnswer(e.target.value)}
+          onChange={e => setAnswer(e.target.value)}
         />
         <button
           onClick={addCard}
@@ -107,20 +97,19 @@ export const FlashcardsPage = () => {
         </button>
       </div>
 
-      {/* Review section */}
       <h2 className="text-xl font-semibold mt-6 mb-2">Due for Review ({dueCards.length})</h2>
       {dueCards.length === 0 ? (
         <p>No cards to review right now 🎉</p>
       ) : (
         dueCards.map(card => (
-          <div key={card.id} className="border p-3 rounded mb-3">
+          <div key={card._id} className="border p-3 rounded mb-3">
             <p className="font-semibold">{card.question}</p>
             <p className="italic text-gray-500 mt-1">{card.answer}</p>
             <div className="mt-2 space-x-2">
               {[5, 4, 3, 2, 1].map(score => (
                 <button
                   key={score}
-                  onClick={() => reviewCard(card.id, score)}
+                  onClick={() => reviewCard(card._id, score)}
                   className="bg-gray-200 px-2 py-1 rounded hover:bg-gray-300"
                 >
                   {score}
