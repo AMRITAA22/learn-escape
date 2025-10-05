@@ -1,3 +1,5 @@
+import flashcardRoutes from './routes/flashcards.js';
+app.use('/api/flashcards', flashcardRoutes);
 const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
@@ -75,4 +77,5 @@ async function connectDB() {
     console.error('MongoDB connection error:', err.message);
     process.exit(1);
   }
+
 }
