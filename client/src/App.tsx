@@ -11,6 +11,8 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import { TasksPage } from './pages/TasksPage';
+import { FlashcardsPage } from './pages/FlashcardsPage';
+
 
 
 function App() {
