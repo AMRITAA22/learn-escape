@@ -4,8 +4,6 @@ import { NavLink } from 'react-router-dom';
 // THE FIX IS HERE: NotebookText is changed to BookText
 import { LayoutDashboard, MessageSquare, BookText, CheckSquare, Target, Sparkles, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-{ name: 'Flashcards', path: '/flashcards', icon: BookOpen },
-
 
 const Sidebar = () => {
     const { logout } = useAuth();
@@ -52,6 +50,5 @@ const Sidebar = () => {
         </div>
     );
 };
-
 
 export default Sidebar;
