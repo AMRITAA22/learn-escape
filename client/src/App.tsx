@@ -11,6 +11,8 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import { TasksPage } from './pages/TasksPage';
+import { FlashcardsPage } from './pages/FlashcardsPage';
+
 
 
 function App() {
@@ -34,6 +36,8 @@ function App() {
                   <Route path="/room/:roomId" element={<RoomPage />} /> 
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/tasks" element={<TasksPage />} />
+                  <Route path="/flashcards" element={<FlashcardsPage />} />
+
                 </Routes>
               </Layout>
             </ProtectedRoute>
