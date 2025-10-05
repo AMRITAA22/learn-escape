@@ -1,7 +1,7 @@
 import React, { forwardRef, useEffect, useRef } from 'react';
 
 interface VideoProps {
-    stream?: MediaStream;
+    stream: MediaStream;
     isMuted?: boolean;
 }
 
@@ -9,10 +9,11 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>(({ stream, isMuted = fals
     const internalRef = useRef<HTMLVideoElement>(null);
 
     useEffect(() => {
-        if (stream && internalRef.current) {
-            internalRef.current.srcObject = stream;
+        const videoElement = (ref as React.RefObject<HTMLVideoElement>)?.current || internalRef.current;
+        if (videoElement && stream) {
+            videoElement.srcObject = stream;
         }
-    }, [stream]);
+    }, [stream, ref]);
 
     return (
         <video

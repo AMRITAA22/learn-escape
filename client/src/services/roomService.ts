@@ -33,10 +33,23 @@ const createRoom = async (roomData: { name: string; isPublic: boolean }) => {
     return response.data;
 };
 
+// Delete a study room
+const deleteRoom = async (roomId: string) => {
+    const token = getAuthToken();
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    };
+    const response = await axios.delete(`${API_URL}/${roomId}`, config);
+    return response.data;
+};
+
 // Now, the object below can find both functions
 const roomService = {
     getPublicRooms,
     createRoom,
+    deleteRoom,
 };
 
 export default roomService;

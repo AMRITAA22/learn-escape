@@ -1,13 +1,12 @@
-// client/src/pages/StudyRoomsPage.tsx
 import React, { useEffect, useState } from 'react';
 import { RoomList } from '../components/rooms/RoomList';
 import { CreateRoomModal } from '../components/rooms/CreateRoomModal';
 import roomService from '../services/roomService';
 
 export const StudyRoomsPage = () => {
-    const [rooms, setRooms] = useState([]);
+    const [rooms, setRooms] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [isModalOpen, setIsModalOpen] = useState(false); // Make sure this line exists
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const fetchRooms = async () => {
         try {
@@ -25,21 +24,35 @@ export const StudyRoomsPage = () => {
         fetchRooms();
     }, []);
 
+    const handleDeleteRoom = async (roomId: string) => {
+        if (window.confirm('Are you sure you want to delete this room?')) {
+            try {
+                await roomService.deleteRoom(roomId);
+                setRooms(prevRooms => prevRooms.filter(room => room._id !== roomId));
+            } catch (error) {
+                console.error("Failed to delete room:", error);
+                alert("You are not authorized to delete this room.");
+            }
+        }
+    };
+
     return (
         <div>
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold">Public Study Rooms</h1>
                 <button 
-                    onClick={() => setIsModalOpen(true)} // Check this onClick handler
+                    onClick={() => setIsModalOpen(true)}
                     className="bg-green-500 text-white font-bold py-2 px-4 rounded hover:bg-green-600"
                 >
                     + Create Room
                 </button>
             </div>
 
-            {isLoading ? <p>Loading rooms...</p> : <RoomList rooms={rooms} />}
+            {isLoading 
+                ? <p className="mt-6">Loading rooms...</p> 
+                : <RoomList rooms={rooms} onDelete={handleDeleteRoom} />
+            }
 
-            {/* Make sure you are passing the correct props here */}
             <CreateRoomModal 
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
