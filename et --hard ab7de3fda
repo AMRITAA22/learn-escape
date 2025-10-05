@@ -1,0 +1,217 @@
+[33mcommit b4bc6f3bb79eb2ec133c78568964854134cb8248[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Merge: 39f0b49 d2cd66e
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:57:04 2025 +0530
+
+    Merge pull request #6 from AMRITAA22/revert-5-main
+    
+    Revert "flashcard"
+
+[33mcommit d2cd66eac3b8129887d176b0d07a61ad20e61c33[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:56:52 2025 +0530
+
+    Revert "flashcard"
+
+[33mcommit 39f0b49677afbc2fb77282f3936573465565f7c5[m
+Merge: 7866c71 99caead
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:52:20 2025 +0530
+
+    Merge pull request #5 from san-coded/main
+    
+    flashcard
+
+[33mcommit 99caeada94bc2addbed92b6163a4f86251b1e78f[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:51:31 2025 +0530
+
+    Update Sidebar.tsx
+
+[33mcommit 66cbf316947f3c70ab2d5fb0c1d00f33a3f1a669[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:50:15 2025 +0530
+
+    Update App.tsx
+
+[33mcommit 385a83b7f506805c29435f490848e98d48d53647[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:48:46 2025 +0530
+
+    Update server.js
+
+[33mcommit 99673e8a37f978b9b9d56630cbd5540212504ca1[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:48:13 2025 +0530
+
+    Create FlashcardsPage.tsx
+
+[33mcommit 00edd1698578d4bdca4f5912b9d2c3eeed8a00ca[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:47:37 2025 +0530
+
+    Update server.js
+
+[33mcommit 0ec60ffdb5b6fc52cc5f49e42c2958a1f6c21723[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:45:34 2025 +0530
+
+    Create flashcards.js
+
+[33mcommit c4aa603846366f75e9f1d10cbc5af0211fc473db[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:44:52 2025 +0530
+
+    Create Flashcard.js
+
+[33mcommit 937e2ea99dc55ea991d518e4a1b7ba913ada9308[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:44:21 2025 +0530
+
+    Create Deck.js
+
+[33mcommit 7866c713d8f1f9bec9fca8ba2d647f0f8c196634[m
+Merge: 1537462 fb3a09e
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:35:34 2025 +0530
+
+    Merge pull request #4 from AMRITAA22/revert-1-main
+    
+    Revert "Added to-do list"
+
+[33mcommit fb3a09ea721674e5bac3cdedbeeaa44d0f6ba88e[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:35:19 2025 +0530
+
+    Revert "Added to-do list"
+
+[33mcommit 1537462137806c02d3eb1c941ff739aa7361f0cb[m
+Merge: 5b2abd3 23cdb23
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:30:59 2025 +0530
+
+    Merge pull request #3 from AMRITAA22/revert-2-main
+    
+    Revert "FLASHCARDS "
+
+[33mcommit 23cdb23caeaf2c8a56b1ccace8e45a498c939fe2[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:30:43 2025 +0530
+
+    Revert "FLASHCARDS "
+
+[33mcommit 5b2abd3ea306d131bfaa6f766bd8805d1256ec2c[m
+Merge: 701231d 358c86a
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:02:33 2025 +0530
+
+    Merge pull request #2 from san-coded/main
+    
+    FLASHCARDS
+
+[33mcommit 358c86a43fc44fba1ad21865aad742fbb5c93c6c[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 23:00:41 2025 +0530
+
+    Update server.js
+
+[33mcommit dec43d2fa4f1e881ba48fd59ac1838f9d75030cc[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 22:58:54 2025 +0530
+
+    Update FlashcardsPage.tsx
+
+[33mcommit 95549e5371a82fd9d7827fd5ee0f878e018f35a9[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 22:57:53 2025 +0530
+
+    Update server.js
+
+[33mcommit c0263a087c251cb971e8a556968feabcaea01774[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 22:54:05 2025 +0530
+
+    Create flashcards.js
+
+[33mcommit 2bdcf40b7d6110c81a5f154511ea05c623b3504d[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 22:53:28 2025 +0530
+
+    Create Flashcard.js
+
+[33mcommit 46ea7211317705108806fbfd450b804f821232da[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 22:53:07 2025 +0530
+
+    Create Deck.js
+
+[33mcommit 4fc915c99f7d4ad795141a01534bf712789b4093[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 22:51:42 2025 +0530
+
+    Update Sidebar.tsx
+
+[33mcommit 187f1c122aabad0682228cbbf7aaa5203e98cc16[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 22:50:21 2025 +0530
+
+    Update App.tsx
+
+[33mcommit 6c04916669d5ebfe984ee90dc5a5cac51404bf98[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 22:49:59 2025 +0530
+
+    Update App.tsx
+
+[33mcommit cc2981557f773d582b9a63323c6f2ef48cade4a3[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 22:49:06 2025 +0530
+
+    Create FlashcardsPage.tsx
+    
+    adds flashcards
+
+[33mcommit 701231d1766cb51306a211103f7577c71829e1f5[m
+Merge: ab7de3f 3b6ac59
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 22:36:33 2025 +0530
+
+    Merge pull request #1 from san-coded/main
+    
+    Added to-do list
+
+[33mcommit 3b6ac5956f1c2608e0afb76244d9da2531fc26c1[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 19:42:13 2025 +0530
+
+    Update App.tsx
+
+[33mcommit 7e4b73ffc65a2a7fc6ce7b8cf925dd2e954e8549[m
+Author: san-coded <145939056+san-coded@users.noreply.github.com>
+Date:   Sun Oct 5 19:39:58 2025 +0530
+
+    Create TasksPage.tsx
+
+[33mcommit ab7de3fda448bd41d1ca68fc40415f1a675414cc[m
+Author: AMRITAA22 <amritaa2202@gmail.com>
+Date:   Sun Oct 5 15:27:36 2025 +0530
+
+    Update Virtual Room
+
+[33mcommit 6d163a593d5c35164366ec41abb65aa151e1fe65[m
+Author: AMRITAA22 <amritaa2202@gmail.com>
+Date:   Sat Oct 4 16:41:00 2025 +0530
+
+    implement forgot password
+
+[33mcommit 906fc43d60baae8f649a472fda0aebf0a62812e5[m
+Author: AMRITAA22 <amritaa2202@gmail.com>
+Date:   Thu Oct 2 19:38:37 2025 +0530
+
+    Implement full video chat for virtual study rooms
+
+[33mcommit b18f0ecf6cc7911b823128f57af105f41a74e329[m
+Author: AMRITAA22 <amritaa2202@gmail.com>
+Date:   Sun Sep 28 15:41:34 2025 +0530
+
+    Initial project structure setup
