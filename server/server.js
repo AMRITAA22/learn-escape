@@ -4,6 +4,9 @@ const { Server } = require("socket.io");
 const cors = require('cors');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+import taskRoutes from './routes/tasks.js';
+app.use('/api/tasks', taskRoutes);
+
 
 dotenv.config();
 connectDB();
@@ -75,4 +78,5 @@ async function connectDB() {
     console.error('MongoDB connection error:', err.message);
     process.exit(1);
   }
+
 }
