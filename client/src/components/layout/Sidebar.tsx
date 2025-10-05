@@ -15,8 +15,6 @@ const Sidebar = () => {
         { name: 'Tasks', path: '/tasks', icon: CheckSquare },
         { name: 'Goals', path: '/goals', icon: Target },
         { name: 'AI Assistant', path: '/ai-assistant', icon: Sparkles },
-        { name: 'Flashcards', path: '/flashcards', icon: BookOpen },
-
     ];
 
     return (
@@ -52,6 +50,5 @@ const Sidebar = () => {
         </div>
     );
 };
-
 
 export default Sidebar;
