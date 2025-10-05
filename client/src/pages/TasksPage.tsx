@@ -1,36 +1,45 @@
-// client/src/pages/TasksPage.tsx
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
 interface Task {
-  id: number;
+  _id: string;
   text: string;
   completed: boolean;
 }
 
 export const TasksPage = () => {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('tasks');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [input, setInput] = useState('');
 
-  useEffect(() => {
-    localStorage.setItem('tasks', JSON.stringify(tasks));
-  }, [tasks]);
+  const fetchTasks = async () => {
+    const res = await axios.get('/api/tasks', { withCredentials: true });
+    setTasks(res.data);
+  };
 
-  const addTask = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-    setTasks([...tasks, { id: Date.now(), text: input, completed: false }]);
+    const res = await axios.post(
+      '/api/tasks',
+      { text: input },
+      { withCredentials: true }
+    );
+    setTasks([...tasks, res.data]);
     setInput('');
   };
 
-  const toggleTask = (id: number) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
+  const toggleTask = async (id: string) => {
+    const res = await axios.patch(`/api/tasks/${id}`, {}, { withCredentials: true });
+    setTasks(tasks.map(t => (t._id === id ? res.data : t)));
   };
 
-  const deleteTask = (id: number) => {
-    setTasks(tasks.filter(t => t.id !== id));
+  const deleteTask = async (id: string) => {
+    await axios.delete(`/api/tasks/${id}`, { withCredentials: true });
+    setTasks(tasks.filter(t => t._id !== id));
   };
 
   return (
@@ -40,7 +49,7 @@ export const TasksPage = () => {
         <input
           type="text"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={e => setInput(e.target.value)}
           placeholder="Add a new task"
           className="flex-grow px-3 py-2 border rounded-l-md"
         />
@@ -51,19 +60,23 @@ export const TasksPage = () => {
           Add
         </button>
       </form>
+
       <ul>
         {tasks.map(task => (
           <li
-            key={task.id}
+            key={task._id}
             className={`flex justify-between items-center p-2 border-b ${
               task.completed ? 'line-through text-gray-400' : ''
             }`}
           >
-            <span onClick={() => toggleTask(task.id)} className="cursor-pointer">
+            <span
+              onClick={() => toggleTask(task._id)}
+              className="cursor-pointer"
+            >
               {task.text}
             </span>
             <button
-              onClick={() => deleteTask(task.id)}
+              onClick={() => deleteTask(task._id)}
               className="text-red-500 hover:text-red-700"
             >
               ✕
