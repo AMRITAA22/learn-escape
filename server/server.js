@@ -1,5 +1,12 @@
 import flashcardRoutes from './routes/flashcards.js';
 app.use('/api/flashcards', flashcardRoutes);
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+
+app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+app.use(cookieParser());
+app.use(express.json());
+
 const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
@@ -79,3 +86,4 @@ async function connectDB() {
   }
 
 }
+
