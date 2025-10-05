@@ -10,8 +10,6 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
-import { FlashcardsPage } from './pages/FlashcardsPage';
-
 
 function App() {
   return (
@@ -33,8 +31,6 @@ function App() {
                   <Route path="/study-rooms" element={<StudyRoomsPage />} /> {/* Add this route */}
                   <Route path="/room/:roomId" element={<RoomPage />} /> 
                   <Route path="/" element={<DashboardPage />} />
-                  <Route path="/flashcards" element={<FlashcardsPage />} />
-
                 </Routes>
               </Layout>
             </ProtectedRoute>
