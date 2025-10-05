@@ -36,6 +36,8 @@ function App() {
                   <Route path="/room/:roomId" element={<RoomPage />} /> 
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/tasks" element={<TasksPage />} />
+                  <Route path="/flashcards" element={<FlashcardsPage />} />
+
                 </Routes>
               </Layout>
             </ProtectedRoute>
