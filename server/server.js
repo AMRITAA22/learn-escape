@@ -28,17 +28,22 @@ io.on('connection', (socket) => {
             roomUsers[roomId] = [];
         }
 
-        const otherUsersInRoom = roomUsers[roomId];
-        socket.emit("all-users", otherUsersInRoom);
+        // Give the new user the list of existing users to call
+        const usersInThisRoom = roomUsers[roomId];
+        socket.emit("all-users", usersInThisRoom);
 
+        // Add the new user to the list
         roomUsers[roomId].push({ id: peerId, name: user.name, socketId: socket.id });
 
+        // Tell existing users that a new user has arrived
         socket.to(roomId).emit("user-joined", { peerId, user });
         
+        // Update the UI list for everyone
         io.in(roomId).emit('update-user-list', roomUsers[roomId]);
     });
     
     socket.on('send-message', ({ roomId, message, user }) => {
+        // Send to everyone in the room EXCEPT the sender
         socket.to(roomId).emit('receive-message', { message, user });
     });
 
@@ -63,7 +68,7 @@ io.on('connection', (socket) => {
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/rooms', require('./routes/studyRooms'));
-
+app.use('/api/flashcards', require('./routes/flashcards'));
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
 
@@ -76,3 +81,4 @@ async function connectDB() {
     process.exit(1);
   }
 }
+

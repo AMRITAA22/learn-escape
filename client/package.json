@@ -12,6 +12,7 @@
     "@types/react-dom": "^18.2.22",
     "axios": "^1.6.8",
     "buffer": "^6.0.3",
+    "framer-motion": "^12.23.22",
     "lucide-react": "^0.363.0",
     "peerjs": "^1.5.5",
     "process": "^0.11.10",
