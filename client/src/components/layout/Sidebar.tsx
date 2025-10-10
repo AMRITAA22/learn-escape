@@ -1,11 +1,11 @@
 import React from 'react';
+import { Timer } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { 
     LayoutDashboard, 
     MessageSquare, 
     BookText, 
-    CheckSquare, 
-    Target, 
+    CheckSquare,  
     Sparkles, 
     LogOut,
     Layers // Icon for Flashcards
@@ -22,7 +22,7 @@ const Sidebar = () => {
         { name: 'Notes', path: '/notes', icon: BookText },
         { name: 'Flashcards', path: '/flashcards', icon: Layers },
         { name: 'Tasks', path: '/tasks', icon: CheckSquare },
-        { name: 'Goals', path: '/goals', icon: Target },
+        { name: 'Pomodoro', path: '/pomodoro', icon: Timer },
         { name: 'AI Assistant', path: '/ai-assistant', icon: Sparkles },
     ];
 

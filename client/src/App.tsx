@@ -13,6 +13,7 @@ import Layout from './components/layout/Layout';
 import { TasksPage } from './pages/TasksPage';
 import { FlashcardsPage } from './pages/FlashcardsPage'; 
 import { DeckPage } from './pages/DeckPage';
+import { PomodoroPage } from './pages/PomodoroPage';
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
                   <Route path="/tasks" element={<TasksPage />} />
                   <Route path="/flashcards" element={<FlashcardsPage />} /> 
                   <Route path="/flashcards/:id" element={<DeckPage />} />
+                  <Route path="/pomodoro" element={<PomodoroPage />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>
