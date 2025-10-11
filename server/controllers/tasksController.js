@@ -1,4 +1,6 @@
 const Task = require('../models/task');
+roomId: { type: mongoose.Schema.Types.ObjectId, ref: 'StudyRoom' }
+
 
 // Get all tasks for the logged-in user
 exports.getTasks = async (req, res) => {
@@ -11,6 +13,16 @@ exports.getTasks = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+// Get tasks for a study room
+exports.getRoomTasks = async (req, res) => {
+  try {
+    const tasks = await Task.find({ roomId: req.params.roomId }).sort({ createdAt: -1 });
+    res.status(200).json(tasks);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
 
 // Create a new task
 exports.createTask = async (req, res) => {
@@ -53,4 +65,5 @@ exports.deleteTask = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }
+
 };
