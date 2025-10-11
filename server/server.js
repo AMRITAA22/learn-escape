@@ -64,6 +64,10 @@ io.on('connection', (socket) => {
             io.in(roomId_left).emit('update-user-list', roomUsers[roomId_left]);
         }
     });
+    socket.on('update-tasks', (roomId, tasks) => {
+    io.in(roomId).emit('sync-tasks', tasks);
+    });
+
 });
 
 app.use('/api/auth', require('./routes/auth'));
@@ -83,4 +87,5 @@ async function connectDB() {
     process.exit(1);
   }
 }
+
 
