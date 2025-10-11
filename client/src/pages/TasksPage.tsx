@@ -1,33 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import tasksService from '../services/tasksService';
 import { Trash2, Plus } from 'lucide-react';
+import { socketService } from '../services/socketService';
+import { useParams } from 'react-router-dom'; // if using roomId in route
+
 
 export const TasksPage = () => {
     const [tasks, setTasks] = useState<any[]>([]);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const { roomId } = useParams(); // works if your route path is /room/:roomId/tasks
+
 
     useEffect(() => {
         tasksService.getTasks()
             .then(setTasks)
             .finally(() => setIsLoading(false));
         socketService.onevent('sync-tasks', (tasks) => setTasks(tasks));
-
+        setTasks(updatedTasks);
+        return () => socketService.offevent('sync-tasks');
     }, []);
 
     const handleCreateTask = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newTaskTitle.trim()) return;
-        try {
-            const newTask = await tasksService.createTask({ title: newTaskTitle });
-            setTasks(prevTasks => [newTask, ...prevTasks]);
-            setNewTaskTitle('');
-            socketService.emitevent('update-tasks', roomId, updatedList);
-            setNewTaskTitle('');
-        } catch (error) {
-            console.error("Failed to create task", error);
-        }
-    };
+  e.preventDefault();
+  if (!newTaskTitle.trim()) return;
+
+  try {
+    const newTask = await tasksService.createTask({ title: newTaskTitle, roomId });
+    const updatedList = [newTask, ...tasks];
+    setTasks(updatedList);
+
+    // Emit to all connected members in the study room
+    socketService.emitevent('update-tasks', roomId, updatedList);
+
+    setNewTaskTitle('');
+  } catch (error) {
+    console.error('Failed to create task', error);
+  }
+};
+
 
     const handleToggleComplete = async (taskId: string, completed: boolean) => {
         try {
