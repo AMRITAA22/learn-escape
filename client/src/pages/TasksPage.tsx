@@ -11,6 +11,8 @@ export const TasksPage = () => {
         tasksService.getTasks()
             .then(setTasks)
             .finally(() => setIsLoading(false));
+        socketService.onevent('sync-tasks', (tasks) => setTasks(tasks));
+
     }, []);
 
     const handleCreateTask = async (e: React.FormEvent) => {
@@ -19,6 +21,8 @@ export const TasksPage = () => {
         try {
             const newTask = await tasksService.createTask({ title: newTaskTitle });
             setTasks(prevTasks => [newTask, ...prevTasks]);
+            setNewTaskTitle('');
+            socketService.emitevent('update-tasks', roomId, updatedList);
             setNewTaskTitle('');
         } catch (error) {
             console.error("Failed to create task", error);
