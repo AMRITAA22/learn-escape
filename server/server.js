@@ -70,6 +70,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/rooms', require('./routes/studyRooms'));
 app.use('/api/flashcards', require('./routes/flashcards'));
 app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/ai', require('./routes/ai'));
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));

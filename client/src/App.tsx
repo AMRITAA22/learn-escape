@@ -14,7 +14,7 @@ import { TasksPage } from './pages/TasksPage';
 import { FlashcardsPage } from './pages/FlashcardsPage'; 
 import { DeckPage } from './pages/DeckPage';
 import { PomodoroPage } from './pages/PomodoroPage';
-
+import { AIAssistantPage } from './pages/AIAssistantPage';
 function App() {
   return (
     <Router>
@@ -39,6 +39,7 @@ function App() {
                   <Route path="/flashcards" element={<FlashcardsPage />} /> 
                   <Route path="/flashcards/:id" element={<DeckPage />} />
                   <Route path="/pomodoro" element={<PomodoroPage />} />
+                  <Route path="/ai-assistant" element={<AIAssistantPage />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>
