@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import pomodoroService from '../services/pomodoroService';
 
 type TimerMode = 'focus' | 'break';
 
@@ -65,6 +66,14 @@ export const usePomodoro = (initialFocusTime = 25, initialBreakTime = 5) => {
                 setSessionsCompleted(prev => prev + 1);
                 setTotalMinutesStudied(prev => prev + focusMinutes);
                 updateStreak();
+
+                // Log the session to the backend
+                pomodoroService.logSession(focusMinutes)
+                    .then(() => console.log("Session logged successfully"))
+                    .catch(err => console.error("Failed to log session", err));
+
+                updateStreak();
+                
                 setMode('break');
                 setTimeLeft(breakMinutes * 60);
             } else {

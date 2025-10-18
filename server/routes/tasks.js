@@ -3,7 +3,7 @@ const router = express.Router();
 const { getTasks, createTask, updateTask, deleteTask } = require('../controllers/tasksController');
 const { protect } = require('../middleware/authMiddleware');
 
-router.use(protect); // Secure all routes
+router.use(protect);
 
 router.route('/')
     .get(getTasks)
