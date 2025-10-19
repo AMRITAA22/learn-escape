@@ -9,7 +9,7 @@ export const PomodoroPage = () => {
         isActive,
         mode,
         sessionsCompleted,
-        totalMinutesStudied,
+        studyHoursDisplay,
         dailyStreak,
         focusMinutes,
         setFocusMinutes,
@@ -18,9 +18,10 @@ export const PomodoroPage = () => {
         playPause,
         reset,
         switchMode,
+        isLoadingStats,
     } = usePomodoro(25, 5);
 
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false); // State for settings visibility
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
@@ -30,8 +31,6 @@ export const PomodoroPage = () => {
 
     return (
         <div className="flex flex-col items-center justify-center p-4">
-            {/* <h1 className="text-4xl font-bold mb-8">Pomodoro Timer</h1> */}
-
             {/* Main Timer Display */}
             <div className="w-80 h-80 rounded-full flex flex-col items-center justify-center bg-white shadow-lg mb-8 transition-colors duration-500"
                  style={{ backgroundColor: mode === 'focus' ? 'white' : '#f0fff4' }}
@@ -64,22 +63,28 @@ export const PomodoroPage = () => {
             </div>
             
             {/* Statistics Display */}
-            <div className="mt-12 flex space-x-8 text-center">
-                <div>
-                    <p className="text-3xl font-bold">{sessionsCompleted}</p>
-                    <p className="text-sm text-gray-500">Sessions Completed</p>
+            {isLoadingStats ? (
+                <div className="mt-12 text-gray-500">Loading stats...</div>
+            ) : (
+                <div className="mt-12 flex space-x-8 text-center">
+                    <div>
+                        <p className="text-3xl font-bold">{sessionsCompleted}</p>
+                        <p className="text-sm text-gray-500">Sessions Completed</p>
+                    </div>
+                    <div>
+                        <p className="text-3xl font-bold">
+                            {studyHoursDisplay.hours}h {studyHoursDisplay.minutes}m
+                        </p>
+                        <p className="text-sm text-gray-500">Hours Studied</p>
+                    </div>
+                    <div>
+                        <p className="text-3xl font-bold flex items-center justify-center">
+                            <Zap size={28} className="text-yellow-500 mr-1"/> {dailyStreak}
+                        </p>
+                        <p className="text-sm text-gray-500">Daily Streak</p>
+                    </div>
                 </div>
-                <div>
-                    <p className="text-3xl font-bold">{totalMinutesStudied}</p>
-                    <p className="text-sm text-gray-500">Minutes Studied</p>
-                </div>
-                <div>
-                    <p className="text-3xl font-bold flex items-center justify-center">
-                        <Zap size={28} className="text-yellow-500 mr-1"/> {dailyStreak}
-                    </p>
-                    <p className="text-sm text-gray-500">Daily Streak</p>
-                </div>
-            </div>
+            )}
 
             {/* Settings Inputs (Now with animation) */}
             <AnimatePresence>
@@ -103,7 +108,7 @@ export const PomodoroPage = () => {
                                 disabled={isActive}
                             />
                         </div>
-                         <div className="flex justify-between items-center mt-4">
+                        <div className="flex justify-between items-center mt-4">
                             <label htmlFor="break-time">Break Time (minutes):</label>
                             <input
                                 id="break-time"

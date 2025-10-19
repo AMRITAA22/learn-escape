@@ -1,25 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import dashboardService from '../services/dashboardService';
+import pomodoroService from '../services/pomodoroService';
 import { Link } from 'react-router-dom';
 import { Clock, CheckCircle, Zap, Award, BookOpen, Plus, Timer, Users } from 'lucide-react';
-import { MotivationalQuote } from '../components/dashboard/MotivationalQuote';
+
+// Helper function to convert minutes to hours and minutes format
+const formatMinutesToHours = (totalMinutes: number) => {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return { hours, minutes };
+};
 
 export const DashboardPage = () => {
     const { user } = useAuth();
     const [dashboardData, setDashboardData] = useState<any>(null);
     const [taskStats, setTaskStats] = useState({ completed: 0, total: 0 });
+    const [pomodoroStats, setPomodoroStats] = useState({ sessionsCompleted: 0, totalMinutesStudied: 0 });
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         if (user) {
             Promise.all([
                 dashboardService.getDashboardData(),
-                dashboardService.getTaskStats()
+                dashboardService.getTaskStats(),
+                pomodoroService.getStats(),
             ])
-            .then(([data, stats]) => {
+            .then(([data, stats, pomodoroData]) => {
                 setDashboardData(data);
                 setTaskStats(stats);
+                setPomodoroStats(pomodoroData);
             })
             .catch(err => console.error("Failed to load dashboard data", err))
             .finally(() => setIsLoading(false));
@@ -31,19 +41,44 @@ export const DashboardPage = () => {
     }
 
     const tasksValue = `${taskStats.completed} / ${taskStats.total}`;
+    const studyHoursDisplay = formatMinutesToHours(pomodoroStats.totalMinutesStudied);
+    const studyHoursValue = `${studyHoursDisplay.hours}h ${studyHoursDisplay.minutes}m`;
 
     return (
         <div>
             <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name}!</h1>
             <p className="text-gray-500 mb-8">Here's a snapshot of your progress today.</p>
-            <MotivationalQuote />
-            <br></br>
+
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard icon={<Clock size={20} />} title="Study Hours Today" value={dashboardData?.studyHoursToday || 0} unit="hrs" color="blue" />
-                <StatCard icon={<CheckCircle size={20} />} title="Tasks Completed" value={tasksValue} isText={true} color="green" />
-                <StatCard icon={<Zap size={20} />} title="Study Streak" value={dashboardData?.studyStreak || 0} unit="days" color="yellow" />
-                <StatCard icon={<Award size={20} />} title="Your Rank" value={`#${dashboardData?.rank || 'N/A'}`} isText={true} color="red" />
+                <StatCard 
+                    icon={<Clock size={20} />} 
+                    title="Study Hours" 
+                    value={studyHoursValue} 
+                    isText={true} 
+                    color="blue" 
+                />
+                <StatCard 
+                    icon={<CheckCircle size={20} />} 
+                    title="Tasks Completed" 
+                    value={tasksValue} 
+                    isText={true} 
+                    color="green" 
+                />
+                <StatCard 
+                    icon={<Zap size={20} />} 
+                    title="Sessions Done" 
+                    value={pomodoroStats.sessionsCompleted} 
+                    unit="sessions" 
+                    color="yellow" 
+                />
+                <StatCard 
+                    icon={<Award size={20} />} 
+                    title="Your Rank" 
+                    value={`#${dashboardData?.rank || 'N/A'}`} 
+                    isText={true} 
+                    color="red" 
+                />
             </div>
 
             {/* Quick Actions */}
@@ -60,6 +95,7 @@ export const DashboardPage = () => {
     );
 };
 
+// Helper component for stat cards
 const StatCard = ({ icon, title, value, unit, color, isText = false }: any) => {
     const colors: { [key: string]: string } = {
         blue: 'bg-blue-100 text-blue-800',
@@ -82,6 +118,7 @@ const StatCard = ({ icon, title, value, unit, color, isText = false }: any) => {
     );
 };
 
+// Helper component for action cards
 const ActionCard = ({ icon, title, to }: any) => (
     <Link to={to} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow flex flex-col items-center justify-center text-center">
         <div className="bg-gray-100 p-3 rounded-full mb-3">

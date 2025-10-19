@@ -17,6 +17,13 @@ const areOnSameDay = (date1: Date, date2: Date) => {
            date1.getDate() === date2.getDate();
 };
 
+// Helper function to convert minutes to hours and minutes format
+const formatMinutesToHours = (totalMinutes: number) => {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return { hours, minutes };
+};
+
 export const usePomodoro = (initialFocusTime = 25, initialBreakTime = 5) => {
     const [focusMinutes, setFocusMinutes] = useState(initialFocusTime);
     const [breakMinutes, setBreakMinutes] = useState(initialBreakTime);
@@ -29,11 +36,27 @@ export const usePomodoro = (initialFocusTime = 25, initialBreakTime = 5) => {
     const [sessionsCompleted, setSessionsCompleted] = useState(0);
     const [totalMinutesStudied, setTotalMinutesStudied] = useState(0);
     const [dailyStreak, setDailyStreak] = useState(0);
+    const [isLoadingStats, setIsLoadingStats] = useState(true);
 
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Load stats and streak from localStorage on initial load
+    // FETCH STATS FROM BACKEND ON COMPONENT MOUNT
     useEffect(() => {
+        const loadStats = async () => {
+            try {
+                const stats = await pomodoroService.getStats();
+                setSessionsCompleted(stats.sessionsCompleted || 0);
+                setTotalMinutesStudied(stats.totalMinutesStudied || 0);
+            } catch (error) {
+                console.error("Failed to load stats", error);
+            } finally {
+                setIsLoadingStats(false);
+            }
+        };
+
+        loadStats();
+
+        // Load streak from localStorage
         const savedStreak = parseInt(localStorage.getItem('pomodoroStreak') || '0', 10);
         const lastSessionDate = localStorage.getItem('lastPomodoroSession');
         const today = new Date();
@@ -41,7 +64,6 @@ export const usePomodoro = (initialFocusTime = 25, initialBreakTime = 5) => {
         if (lastSessionDate) {
             const lastDate = new Date(lastSessionDate);
             if (!areOnSameDay(today, lastDate) && !areOnConsecutiveDays(today, lastDate)) {
-                // If the last session was not today or yesterday, reset the streak
                 setDailyStreak(0);
                 localStorage.setItem('pomodoroStreak', '0');
             } else {
@@ -72,8 +94,6 @@ export const usePomodoro = (initialFocusTime = 25, initialBreakTime = 5) => {
                     .then(() => console.log("Session logged successfully"))
                     .catch(err => console.error("Failed to log session", err));
 
-                updateStreak();
-                
                 setMode('break');
                 setTimeLeft(breakMinutes * 60);
             } else {
@@ -89,7 +109,7 @@ export const usePomodoro = (initialFocusTime = 25, initialBreakTime = 5) => {
         };
     }, [isActive, timeLeft, mode, focusMinutes, breakMinutes]);
 
-    // FIX: This effect updates the timer when the user changes the minutes
+    // This effect updates the timer when the user changes the minutes
     useEffect(() => {
         if (!isActive) {
             if (mode === 'focus') {
@@ -99,7 +119,6 @@ export const usePomodoro = (initialFocusTime = 25, initialBreakTime = 5) => {
             }
         }
     }, [focusMinutes, breakMinutes, mode, isActive]);
-
 
     const updateStreak = () => {
         const today = new Date();
@@ -141,12 +160,16 @@ export const usePomodoro = (initialFocusTime = 25, initialBreakTime = 5) => {
         setMode(newMode);
     };
 
+    // Get display format for hours and minutes
+    const studyHoursDisplay = formatMinutesToHours(totalMinutesStudied);
+
     return {
         timeLeft,
         isActive,
         mode,
         sessionsCompleted,
         totalMinutesStudied,
+        studyHoursDisplay,
         dailyStreak,
         focusMinutes,
         setFocusMinutes,
@@ -155,5 +178,6 @@ export const usePomodoro = (initialFocusTime = 25, initialBreakTime = 5) => {
         playPause,
         reset,
         switchMode,
+        isLoadingStats,
     };
 };

@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-const API_URL = `${process.env.REACT_APP_API_URL}/dashboard`;
+const API_URL = `${process.env.REACT_APP_API_URL}`;
 const TASKS_API_URL = `${process.env.REACT_APP_API_URL}/tasks`;
+
 const getAuthToken = () => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     return user?.token;
@@ -9,11 +10,15 @@ const getAuthToken = () => {
 
 const getDashboardData = async () => {
     const config = { headers: { Authorization: `Bearer ${getAuthToken()}` } };
-    const response = await axios.get(API_URL, config);
-    return response.data;
+    try {
+        const response = await axios.get(`${API_URL}/dashboard`, config);
+        return response.data;
+    } catch (error) {
+        console.error("Failed to fetch dashboard data", error);
+        return {};
+    }
 };
 
-// Add this new method to get task statistics
 const getTaskStats = async () => {
     const config = { headers: { Authorization: `Bearer ${getAuthToken()}` } };
     try {

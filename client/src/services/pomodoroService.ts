@@ -13,8 +13,20 @@ const logSession = async (duration: number) => {
     return response.data;
 };
 
+const getStats = async () => {
+    const config = { headers: { Authorization: `Bearer ${getAuthToken()}` } };
+    try {
+        const response = await axios.get(`${API_URL}/stats`, config);
+        return response.data;
+    } catch (error) {
+        console.error("Failed to fetch pomodoro stats", error);
+        return { sessionsCompleted: 0, totalMinutesStudied: 0 };
+    }
+};
+
 const pomodoroService = {
     logSession,
+    getStats,
 };
 
 export default pomodoroService;
