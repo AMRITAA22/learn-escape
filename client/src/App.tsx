@@ -15,6 +15,7 @@ import { FlashcardsPage } from './pages/FlashcardsPage';
 import { DeckPage } from './pages/DeckPage';
 import { PomodoroPage } from './pages/PomodoroPage';
 import { AIAssistantPage } from './pages/AIAssistantPage';
+import { NotesPage } from './pages/NotesPage';
 function App() {
   return (
     <Router>
@@ -40,6 +41,7 @@ function App() {
                   <Route path="/flashcards/:id" element={<DeckPage />} />
                   <Route path="/pomodoro" element={<PomodoroPage />} />
                   <Route path="/ai-assistant" element={<AIAssistantPage />} />
+                  <Route path="/notes" element={<NotesPage />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>
