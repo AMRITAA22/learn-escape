@@ -1,5 +1,5 @@
 import React, { forwardRef, useEffect, useRef, useState } from 'react';
-import { VideoOff } from 'lucide-react';
+import { VideoOff, MicOff } from 'lucide-react';
 
 interface VideoProps {
     stream: MediaStream;
@@ -11,6 +11,7 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>(
     ({ stream, isMuted = false, userName }, ref) => {
         const internalRef = useRef<HTMLVideoElement>(null);
         const [isVideoActive, setIsVideoActive] = useState(true);
+        const [isAudioMuted, setIsAudioMuted] = useState(false);
 
         useEffect(() => {
             const videoElement = (ref as React.RefObject<HTMLVideoElement>)?.current || internalRef.current;
@@ -33,7 +34,6 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>(
                         setIsVideoActive(videoTrack.enabled);
                     };
 
-                    // Note: Some browsers support 'mute'/'unmute' events
                     videoTrack.addEventListener('ended', handleTrackChange);
                     
                     // Poll for changes (fallback for browsers that don't fire events)
@@ -48,6 +48,30 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>(
                 }
             }
         }, [stream]);
+
+        // Monitor audio track status (for remote participants)
+        useEffect(() => {
+            if (stream && !isMuted) {
+                const audioTrack = stream.getAudioTracks()[0];
+                
+                if (audioTrack) {
+                    // Set initial state
+                    setIsAudioMuted(!audioTrack.enabled);
+                    
+                    // Poll for changes
+                    const interval = setInterval(() => {
+                        setIsAudioMuted(!audioTrack.enabled);
+                    }, 500);
+
+                    return () => {
+                        clearInterval(interval);
+                    };
+                }
+            } else {
+                // For local stream, use the isMuted prop directly
+                setIsAudioMuted(isMuted);
+            }
+        }, [stream, isMuted]);
 
         return (
             <div className="relative w-full h-auto bg-black rounded-md overflow-hidden">
@@ -72,10 +96,10 @@ const Video = forwardRef<HTMLVideoElement, VideoProps>(
                     </div>
                 )}
 
-                {/* Optional: Muted indicator */}
-                {isMuted && isVideoActive && (
-                    <div className="absolute bottom-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-semibold">
-                        Muted
+                {/* Microphone muted indicator - shows only when muted */}
+                {isAudioMuted && (
+                    <div className="absolute bottom-2 left-2 bg-red-500 text-white p-2 rounded-full shadow-lg">
+                        <MicOff size={16} />
                     </div>
                 )}
             </div>

@@ -142,7 +142,7 @@ export const RoomPage = () => {
                         <div className="relative">
                             <Video 
                                 stream={localStream} 
-                                isMuted={true} 
+                                isMuted={isMuted} 
                                 userName={user?.name || 'You'}
                             />
                             <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-semibold">
