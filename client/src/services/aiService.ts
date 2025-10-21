@@ -20,7 +20,6 @@ const uploadNotes = async (noteFile: File) => {
     return response.data;
 };
 
-// Chat function now accepts an optional conversationId
 const chat = async (prompt: string, conversationId: string | null) => {
     const config = { headers: { 'Authorization': `Bearer ${getAuthToken()}` } };
     const response = await axios.post(`${API_URL}/chat`, { prompt, conversationId }, config);
@@ -39,12 +38,37 @@ const getConversationById = async (id: string) => {
     return response.data;
 };
 
+// NEW: Generate flashcards without saving
+const generateFlashcards = async (data: {
+    topic?: string;
+    numberOfCards?: number;
+    useUploadedNotes?: boolean;
+}) => {
+    const config = { headers: { 'Authorization': `Bearer ${getAuthToken()}` } };
+    const response = await axios.post(`${API_URL}/generate-flashcards`, data, config);
+    return response.data;
+};
+
+// NEW: Generate and save flashcards as a deck
+const generateAndSaveDeck = async (data: {
+    topic?: string;
+    numberOfCards?: number;
+    useUploadedNotes?: boolean;
+    deckTitle?: string;
+    deckDescription?: string;
+}) => {
+    const config = { headers: { 'Authorization': `Bearer ${getAuthToken()}` } };
+    const response = await axios.post(`${API_URL}/generate-deck`, data, config);
+    return response.data;
+};
 
 const aiService = {
     uploadNotes,
     chat,
     getConversations,
     getConversationById,
+    generateFlashcards,
+    generateAndSaveDeck,
 };
 
 export default aiService;

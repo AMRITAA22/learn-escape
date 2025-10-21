@@ -4,8 +4,6 @@ const FlashcardDeck = require('../models/FlashcardDeck');
 // @route   GET /api/flashcards
 exports.getDecks = async (req, res) => {
     try {
-        // THE FIX: This now finds only the decks where 'createdBy'
-        // matches the ID of the user making the request.
         const decks = await FlashcardDeck.find({ createdBy: req.user.id });
         res.status(200).json(decks);
     } catch (error) {
@@ -16,13 +14,13 @@ exports.getDecks = async (req, res) => {
 // @desc    Create a new flashcard deck
 // @route   POST /api/flashcards
 exports.createDeck = async (req, res) => {
-    const { title, description } = req.body;
+    const { title, description, cards } = req.body;
     try {
         const newDeck = await FlashcardDeck.create({
             title,
             description,
-            createdBy: req.user.id, // Correctly saves the user's ID
-            cards: [],
+            createdBy: req.user.id,
+            cards: cards || [],
         });
         res.status(201).json(newDeck);
     } catch (error) {
@@ -38,7 +36,6 @@ exports.getDeckById = async (req, res) => {
         if (!deck) {
             return res.status(404).json({ message: 'Deck not found' });
         }
-        // Security check: Ensure the user owns this deck
         if (deck.createdBy.toString() !== req.user.id) {
             return res.status(401).json({ message: 'Not authorized' });
         }
@@ -65,7 +62,61 @@ exports.addCardToDeck = async (req, res) => {
     }
 };
 
-// --- NEW FUNCTION ---
+// @desc    Update a specific card in a deck
+// @route   PUT /api/flashcards/:deckId/cards/:cardId
+exports.updateCard = async (req, res) => {
+    const { front, back } = req.body;
+    try {
+        const deck = await FlashcardDeck.findById(req.params.deckId);
+
+        if (!deck) {
+            return res.status(404).json({ message: 'Deck not found' });
+        }
+
+        if (deck.createdBy.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        const card = deck.cards.id(req.params.cardId);
+        if (!card) {
+            return res.status(404).json({ message: 'Card not found' });
+        }
+
+        if (front) card.front = front;
+        if (back) card.back = back;
+
+        await deck.save();
+        res.status(200).json(deck);
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Update deck title and description
+// @route   PUT /api/flashcards/:id
+exports.updateDeck = async (req, res) => {
+    const { title, description } = req.body;
+    try {
+        const deck = await FlashcardDeck.findById(req.params.id);
+
+        if (!deck) {
+            return res.status(404).json({ message: 'Deck not found' });
+        }
+
+        if (deck.createdBy.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        if (title) deck.title = title;
+        if (description !== undefined) deck.description = description;
+
+        await deck.save();
+        res.status(200).json(deck);
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 // @desc    Delete a flashcard deck
 // @route   DELETE /api/flashcards/:id
 exports.deleteDeck = async (req, res) => {
@@ -76,13 +127,11 @@ exports.deleteDeck = async (req, res) => {
             return res.status(404).json({ message: 'Deck not found' });
         }
 
-        // Security Check: Make sure the user owns this deck
         if (deck.createdBy.toString() !== req.user.id) {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
         await deck.deleteOne();
-
         res.status(200).json({ message: 'Deck removed successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
@@ -98,12 +147,11 @@ exports.deleteCard = async (req, res) => {
         if (!deck) {
             return res.status(404).json({ message: 'Deck not found' });
         }
-        // Security Check: Make sure the user owns this deck
+
         if (deck.createdBy.toString() !== req.user.id) {
             return res.status(401).json({ message: 'Not authorized' });
         }
 
-        // Pull (remove) the card from the cards array
         deck.cards.pull({ _id: req.params.cardId });
         await deck.save();
 

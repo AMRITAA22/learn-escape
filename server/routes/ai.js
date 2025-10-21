@@ -5,7 +5,9 @@ const {
     chat, 
     uploadMiddleware, 
     getConversations, 
-    getConversationById 
+    getConversationById,
+    generateFlashcards,
+    generateAndSaveDeck
 } = require('../controllers/aiController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -14,8 +16,11 @@ router.use(protect);
 router.post('/upload', uploadMiddleware, uploadNotes);
 router.post('/chat', chat);
 
-// --- These routes were missing, causing the 404 error ---
 router.get('/conversations', getConversations);
 router.get('/conversations/:id', getConversationById);
+
+// NEW: AI Flashcard generation routes
+router.post('/generate-flashcards', generateFlashcards);
+router.post('/generate-deck', generateAndSaveDeck);
 
 module.exports = router;

@@ -1,27 +1,18 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 const multer = require('multer');
 const Tesseract = require('tesseract.js');
-const Conversation = require('../models/Conversation'); 
+const Conversation = require('../models/Conversation');
+const FlashcardDeck = require('../models/FlashcardDeck');
 
-// Initialize the Google AI client with your API key
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-// This model name is correct for the latest library version
-// const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-// For the latest, most capable model
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-//lalalalalala finally working
-// OR for a faster and more cost-effective option
-// const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-latest" });
 
-// In-memory storage for user notes { userId: 'note content' }
 const userNotes = {};
 
-// Multer setup for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 exports.uploadMiddleware = upload.single('noteFile');
 
-// This function handles uploading and processing notes (text or image)
 exports.uploadNotes = async (req, res) => {
     const userId = req.user.id;
     const noteFile = req.file;
@@ -47,10 +38,9 @@ exports.uploadNotes = async (req, res) => {
     }
 };
 
-// This function handles the chat logic using the Gemini API
 exports.chat = async (req, res) => {
     const userId = req.user.id;
-    const { prompt,conversationId  } = req.body;
+    const { prompt, conversationId } = req.body;
     const noteContent = userNotes[userId];
 
     if (!prompt) {
@@ -58,7 +48,6 @@ exports.chat = async (req, res) => {
     }
     try {
         let conversation;
-        // Find existing conversation or create a new one
         if (conversationId) {
             conversation = await Conversation.findOne({ _id: conversationId, userId: userId });
         }
@@ -66,7 +55,6 @@ exports.chat = async (req, res) => {
             conversation = new Conversation({ userId: userId, messages: [] });
         }
 
-        // Add the user's new message to the history
         conversation.messages.push({ role: 'user', content: prompt });
 
         let fullPrompt = prompt;
@@ -74,7 +62,6 @@ exports.chat = async (req, res) => {
             fullPrompt = `Based ONLY on the following notes, answer the question.\n\n---NOTES---\n${noteContent}\n---END NOTES---\n\nQuestion: ${prompt}`;
         }
 
-        // Start a chat session with history for context (optional, but better)
         const chatSession = model.startChat({
             history: conversation.messages.slice(0, -1).map(msg => ({
                 role: msg.role === 'assistant' ? 'model' : 'user',
@@ -82,17 +69,16 @@ exports.chat = async (req, res) => {
             })),
         });
 
-    const result = await chatSession.sendMessage(fullPrompt);
+        const result = await chatSession.sendMessage(fullPrompt);
         const response = await result.response;
         const aiResponseText = response.text();
 
-        // Add the AI's response to the history
         conversation.messages.push({ role: 'assistant', content: aiResponseText });
         await conversation.save();
 
         res.status(200).json({ 
             response: aiResponseText, 
-            conversationId: conversation._id // Send back the ID
+            conversationId: conversation._id
         });
     } catch (error) {
         console.error("Error communicating with Gemini AI:", error);
@@ -100,19 +86,146 @@ exports.chat = async (req, res) => {
     }
 };
 
-// Get all of a user's conversations
+// NEW: Generate flashcards from notes or custom topic
+exports.generateFlashcards = async (req, res) => {
+    const userId = req.user.id;
+    const { topic, numberOfCards, useUploadedNotes } = req.body;
+
+    if (!topic && !useUploadedNotes) {
+        return res.status(400).json({ message: 'Please provide a topic or use uploaded notes.' });
+    }
+
+    const cardCount = numberOfCards || 10;
+
+    try {
+        let promptContent = '';
+        
+        if (useUploadedNotes && userNotes[userId]) {
+            promptContent = `Based on the following notes, generate ${cardCount} flashcards for studying:\n\n${userNotes[userId]}`;
+        } else if (topic) {
+            promptContent = `Generate ${cardCount} educational flashcards about: ${topic}`;
+        } else {
+            return res.status(400).json({ message: 'No notes uploaded. Please upload notes first or provide a topic.' });
+        }
+
+        const fullPrompt = `${promptContent}
+
+Format your response as a JSON array with this exact structure:
+[
+  {
+    "front": "Question or term",
+    "back": "Answer or definition"
+  }
+]
+
+Make the flashcards educational, clear, and focused on key concepts. Return ONLY the JSON array, no additional text.`;
+
+        const result = await model.generateContent(fullPrompt);
+        const response = await result.response;
+        let aiResponseText = response.text();
+
+        // Clean up the response to extract JSON
+        aiResponseText = aiResponseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        const flashcards = JSON.parse(aiResponseText);
+
+        if (!Array.isArray(flashcards) || flashcards.length === 0) {
+            throw new Error('Invalid flashcard format received from AI');
+        }
+
+        res.status(200).json({ 
+            flashcards,
+            message: `Generated ${flashcards.length} flashcards successfully!`
+        });
+    } catch (error) {
+        console.error("Error generating flashcards:", error);
+        res.status(500).json({ message: "Failed to generate flashcards. Please try again." });
+    }
+};
+
+// NEW: Generate and save flashcards directly to a deck
+exports.generateAndSaveDeck = async (req, res) => {
+    const userId = req.user.id;
+    const { topic, numberOfCards, useUploadedNotes, deckTitle, deckDescription } = req.body;
+
+    if (!topic && !useUploadedNotes) {
+        return res.status(400).json({ message: 'Please provide a topic or use uploaded notes.' });
+    }
+
+    const cardCount = numberOfCards || 10;
+
+    try {
+        let promptContent = '';
+        
+        if (useUploadedNotes && userNotes[userId]) {
+            promptContent = `Based on the following notes, generate ${cardCount} flashcards for studying:\n\n${userNotes[userId]}`;
+        } else if (topic) {
+            promptContent = `Generate ${cardCount} educational flashcards about: ${topic}`;
+        } else {
+            return res.status(400).json({ message: 'No notes uploaded. Please upload notes first or provide a topic.' });
+        }
+
+        const fullPrompt = `${promptContent}
+
+Format your response as a JSON array with this exact structure:
+[
+  {
+    "front": "Question or term",
+    "back": "Answer or definition"
+  }
+]
+
+Make the flashcards educational, clear, and focused on key concepts. Return ONLY the JSON array, no additional text.`;
+
+        const result = await model.generateContent(fullPrompt);
+        const response = await result.response;
+        let aiResponseText = response.text();
+
+        aiResponseText = aiResponseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const flashcards = JSON.parse(aiResponseText);
+
+        if (!Array.isArray(flashcards) || flashcards.length === 0) {
+            throw new Error('Invalid flashcard format received from AI');
+        }
+
+        // Create a new deck with the generated flashcards
+        const title = deckTitle || `AI Generated: ${topic || 'From Notes'}`;
+        const description = deckDescription || `Generated ${flashcards.length} flashcards using AI`;
+
+        const newDeck = await FlashcardDeck.create({
+            title,
+            description,
+            createdBy: userId,
+            cards: flashcards,
+        });
+
+        res.status(201).json({ 
+            deck: newDeck,
+            message: `Created deck with ${flashcards.length} AI-generated flashcards!`
+        });
+    } catch (error) {
+        console.error("Error generating and saving deck:", error);
+        res.status(500).json({ message: "Failed to generate and save flashcards. Please try again." });
+    }
+};
+
 exports.getConversations = async (req, res) => {
     try {
-        const conversations = await Conversation.find({ userId: req.user.id }).sort({ updatedAt: -1 }).select('title updatedAt');
+        const conversations = await Conversation.find({ userId: req.user.id })
+            .sort({ updatedAt: -1 })
+            .select('title updatedAt');
         res.status(200).json(conversations);
     } catch (error) {
         res.status(500).json({ message: "Failed to fetch conversations." });
     }
 };
-// Get a single conversation's full message history
+
 exports.getConversationById = async (req, res) => {
     try {
-        const conversation = await Conversation.findOne({ _id: req.params.id, userId: req.user.id });
+        const conversation = await Conversation.findOne({ 
+            _id: req.params.id, 
+            userId: req.user.id 
+        });
         if (!conversation) {
             return res.status(404).json({ message: "Conversation not found." });
         }

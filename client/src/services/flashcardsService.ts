@@ -13,7 +13,11 @@ const getDecks = async () => {
     return response.data;
 };
 
-const createDeck = async (deckData: { title: string; description?: string }) => {
+const createDeck = async (deckData: { 
+    title: string; 
+    description?: string;
+    cards?: { front: string; back: string }[];
+}) => {
     const config = { headers: { Authorization: `Bearer ${getAuthToken()}` } };
     const response = await axios.post(API_URL, deckData, config);
     return response.data;
@@ -31,7 +35,18 @@ const addCardToDeck = async (deckId: string, cardData: { front: string; back: st
     return response.data;
 };
 
-// Delete an entire deck
+const updateCard = async (deckId: string, cardId: string, cardData: { front?: string; back?: string }) => {
+    const config = { headers: { Authorization: `Bearer ${getAuthToken()}` } };
+    const response = await axios.put(`${API_URL}/${deckId}/cards/${cardId}`, cardData, config);
+    return response.data;
+};
+
+const updateDeck = async (deckId: string, deckData: { title?: string; description?: string }) => {
+    const config = { headers: { Authorization: `Bearer ${getAuthToken()}` } };
+    const response = await axios.put(`${API_URL}/${deckId}`, deckData, config);
+    return response.data;
+};
+
 const deleteDeck = async (deckId: string) => {
     const token = getAuthToken();
     const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -39,7 +54,6 @@ const deleteDeck = async (deckId: string) => {
     return response.data;
 };
 
-// Delete a single card from a deck
 const deleteCard = async (deckId: string, cardId: string) => {
     const token = getAuthToken();
     const config = { headers: { Authorization: `Bearer ${token}` } };
@@ -52,6 +66,8 @@ const flashcardsService = {
     createDeck,
     getDeckById,
     addCardToDeck,
+    updateCard,
+    updateDeck,
     deleteDeck,
     deleteCard
 };

@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
-// Import the new functions
 const {
     getDecks,
     createDeck,
     getDeckById,
     addCardToDeck,
+    updateCard,
+    updateDeck,
     deleteDeck,
     deleteCard
 } = require('../controllers/flashcardsController');
@@ -19,13 +20,14 @@ router.route('/')
 
 router.route('/:id')
     .get(getDeckById)
-    .delete(deleteDeck); // Route for deleting a deck
+    .put(updateDeck)
+    .delete(deleteDeck);
 
 router.route('/:id/cards')
     .post(addCardToDeck);
 
-// New route for deleting a specific card from a specific deck
 router.route('/:deckId/cards/:cardId')
+    .put(updateCard)
     .delete(deleteCard);
 
 module.exports = router;

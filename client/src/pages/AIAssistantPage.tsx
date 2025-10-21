@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import aiService from '../services/aiService';
-import { Send, Paperclip, Menu } from 'lucide-react';
+import { Send, Paperclip, Menu, Sparkles, FileText } from 'lucide-react';
 import { ChatSidebar } from '../components/chat/ChatSidebar';
 import { ChatMessage } from '../components/chat/ChatMessage';
+import { AIFlashcardModal } from '../components/flashcards/AIFlashcardModal';
+import { useNavigate } from 'react-router-dom';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -15,16 +17,19 @@ interface Conversation {
 }
 
 export const AIAssistantPage = () => {
+    const navigate = useNavigate();
     const [messages, setMessages] = useState<Message[]>([
-        { role: 'assistant', content: 'Hello! Ask me a question or start a new chat.' }
+        { role: 'assistant', content: 'Hello! I can help you study, answer questions about your notes, or generate flashcards. What would you like to do?' }
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [hasUploadedNotes, setHasUploadedNotes] = useState(false);
     
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+    const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,13 +51,20 @@ export const AIAssistantPage = () => {
             const file = e.target.files[0];
             setIsLoading(true);
             setError('');
-            const uploadNotification: Message = { role: 'assistant', content: `Processing ${file.name}...`};
+            const uploadNotification: Message = { 
+                role: 'assistant', 
+                content: `Processing ${file.name}... Once complete, you can ask questions or generate flashcards from these notes.`
+            };
             setMessages(prev => [...prev, uploadNotification]);
 
             aiService.uploadNotes(file)
                 .then(result => {
-                    const successMsg: Message = { role: 'assistant', content: result.message };
+                    const successMsg: Message = { 
+                        role: 'assistant', 
+                        content: result.message + ' You can now ask questions or click "Generate Flashcards" to create study materials.'
+                    };
                     setMessages(prev => [...prev.slice(0, -1), successMsg]);
+                    setHasUploadedNotes(true);
                 })
                 .catch(err => {
                     setError('Failed to upload and process notes.');
@@ -102,7 +114,7 @@ export const AIAssistantPage = () => {
     const handleNewChat = () => {
         setActiveConversationId(null);
         setMessages([
-            { role: 'assistant', content: 'New chat started. How can I help?' }
+            { role: 'assistant', content: 'New chat started. How can I help you today?' }
         ]);
     };
 
@@ -120,6 +132,14 @@ export const AIAssistantPage = () => {
         }
     };
 
+    const handleFlashcardGenerated = (deck: any) => {
+        const successMsg: Message = {
+            role: 'assistant',
+            content: `Great! I've created a flashcard deck "${deck.title}" with ${deck.cards.length} cards. You can find it in your Flashcards section.`
+        };
+        setMessages(prev => [...prev, successMsg]);
+    };
+
     return (
         <div className="flex h-screen bg-gray-100">
             {sidebarOpen && (
@@ -132,45 +152,129 @@ export const AIAssistantPage = () => {
             )}
 
             <div className="flex-1 flex flex-col">
-                <div className="bg-white border-b border-gray-200 px-4 py-2 flex items-center gap-2">
-                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 hover:bg-gray-100 rounded-full">
-                        <Menu className="w-5 h-5 text-gray-600" />
-                    </button>
-                    <h1 className="text-lg font-semibold">AI Assistant</h1>
+                {/* Header */}
+                <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={() => setSidebarOpen(!sidebarOpen)} 
+                            className="p-2 hover:bg-gray-100 rounded-lg transition"
+                        >
+                            <Menu className="w-5 h-5 text-gray-600" />
+                        </button>
+                        <div className="flex items-center gap-2">
+                            <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg">
+                                <Sparkles className="w-5 h-5 text-white" />
+                            </div>
+                            <h1 className="text-xl font-bold text-gray-800">AI Study Assistant</h1>
+                        </div>
+                    </div>
+                    {hasUploadedNotes && (
+                        <button
+                            onClick={() => setIsFlashcardModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition font-medium"
+                        >
+                            <Sparkles className="w-4 h-4" />
+                            Generate Flashcards
+                        </button>
+                    )}
                 </div>
 
+                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {messages.map((msg, index) => <ChatMessage key={index} message={msg} />)}
-                    {isLoading && (messages.length === 0 || messages[messages.length-1]?.role === 'user') && (
-                        <div className="flex justify-start">
-                            <div className="p-3 rounded-lg bg-gray-200 text-gray-500">Thinking...</div>
+                    {/* Quick Actions Banner */}
+                    {messages.length === 1 && (
+                        <div className="max-w-3xl mx-auto">
+                            <div className="grid md:grid-cols-2 gap-4 mb-8">
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="p-6 bg-white rounded-xl border-2 border-dashed border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50 transition group"
+                                >
+                                    <FileText className="w-8 h-8 text-indigo-600 mb-2 group-hover:scale-110 transition" />
+                                    <h3 className="font-semibold text-gray-800 mb-1">Upload Notes</h3>
+                                    <p className="text-sm text-gray-600">Upload study materials to analyze</p>
+                                </button>
+                                <button
+                                    onClick={() => setIsFlashcardModalOpen(true)}
+                                    className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-300 hover:border-purple-500 hover:shadow-lg transition group"
+                                >
+                                    <Sparkles className="w-8 h-8 text-purple-600 mb-2 group-hover:scale-110 transition" />
+                                    <h3 className="font-semibold text-gray-800 mb-1">Generate Flashcards</h3>
+                                    <p className="text-sm text-gray-600">Create AI-powered study cards</p>
+                                </button>
+                            </div>
                         </div>
                     )}
-                    {error && <div className="text-red-500 text-center p-2">{error}</div>}
+
+                    {messages.map((msg, index) => <ChatMessage key={index} message={msg} />)}
+                    
+                    {isLoading && (messages.length === 0 || messages[messages.length-1]?.role === 'user') && (
+                        <div className="flex justify-start">
+                            <div className="flex items-center gap-2 p-4 rounded-2xl bg-white border border-gray-200">
+                                <div className="flex gap-1">
+                                    <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                    <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                    <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                </div>
+                                <span className="text-gray-500 text-sm">Thinking...</span>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {error && (
+                        <div className="max-w-3xl mx-auto p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                            {error}
+                        </div>
+                    )}
                     <div ref={messagesEndRef} />
                 </div>
 
-                <div className="border-t bg-white px-6 py-4">
-                    <div className="relative">
+                {/* Input Area */}
+                <div className="border-t bg-white px-6 py-4 shadow-lg">
+                    <div className="max-w-4xl mx-auto relative">
                         <textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyPress}
-                            placeholder="Type your message, or attach a file..."
-                            className="w-full resize-none border border-gray-300 rounded-xl px-12 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            placeholder="Ask a question about your notes, or request help studying..."
+                            className="w-full resize-none border border-gray-300 rounded-xl px-14 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
                             rows={1}
                             disabled={isLoading}
                         />
-                        <div className="absolute left-3 top-3.5 flex gap-2">
-                            <input ref={fileInputRef} type="file" accept=".txt,.md,image/png,image/jpeg" onChange={handleFileUpload} className="hidden" />
-                            <button onClick={() => fileInputRef.current?.click()} className="text-gray-500 hover:text-indigo-600" title="Upload document or image"><Paperclip /></button>
+                        <div className="absolute left-4 top-4 flex gap-2">
+                            <input 
+                                ref={fileInputRef} 
+                                type="file" 
+                                accept=".txt,.md,.pdf,image/png,image/jpeg" 
+                                onChange={handleFileUpload} 
+                                className="hidden" 
+                            />
+                            <button 
+                                onClick={() => fileInputRef.current?.click()} 
+                                className="text-gray-500 hover:text-indigo-600 transition p-1" 
+                                title="Upload document or image"
+                                disabled={isLoading}
+                            >
+                                <Paperclip className="w-5 h-5" />
+                            </button>
                         </div>
-                        <button onClick={handleSend} disabled={!input.trim() || isLoading} className="absolute right-3 top-2.5 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-300">
-                            <Send />
+                        <button 
+                            onClick={handleSend} 
+                            disabled={!input.trim() || isLoading} 
+                            className="absolute right-3 top-3 p-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition shadow-md"
+                        >
+                            <Send className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
             </div>
+
+            {/* AI Flashcard Modal */}
+            <AIFlashcardModal
+                isOpen={isFlashcardModalOpen}
+                onClose={() => setIsFlashcardModalOpen(false)}
+                onDeckCreated={handleFlashcardGenerated}
+                mode="create"
+            />
         </div>
     );
 };
