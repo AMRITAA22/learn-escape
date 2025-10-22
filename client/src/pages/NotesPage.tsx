@@ -3,7 +3,7 @@ import notesService from '../services/notesService';
 import { Plus, Trash2, FileText } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css'; // Import Quill styles
-
+import achievementsService from '../services/achievementsService';
 interface INote {
     _id: string;
     title: string;
@@ -30,14 +30,18 @@ export const NotesPage = () => {
     }, []);
 
     const handleCreateNote = async () => {
-        try {
-            const newNote = await notesService.createNote();
-            setNotes(prev => [newNote, ...prev]);
-            setActiveNote(newNote);
-        } catch (error) {
-            console.error("Failed to create note", error);
-        }
-    };
+    try {
+        const newNote = await notesService.createNote();
+        setNotes(prev => [newNote, ...prev]);
+        setActiveNote(newNote);
+        
+        // ✨ ADD THIS: Check achievements
+        achievementsService.checkAchievements()
+            .catch(err => console.error("Failed to check achievements", err));
+    } catch (error) {
+        console.error("Failed to create note", error);
+    }
+};
 
     const handleDeleteNote = async (noteId: string) => {
         if (window.confirm('Are you sure you want to delete this note?')) {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import pomodoroService from '../services/pomodoroService';
-
+import achievementsService from '../services/achievementsService';
 type TimerMode = 'focus' | 'break';
 
 // Helper function to check if two dates are on consecutive days
@@ -85,18 +85,30 @@ export const usePomodoro = (initialFocusTime = 25, initialBreakTime = 5) => {
             setIsActive(false);
 
             if (mode === 'focus') {
-                setSessionsCompleted(prev => prev + 1);
-                setTotalMinutesStudied(prev => prev + focusMinutes);
-                updateStreak();
+    setSessionsCompleted(prev => prev + 1);
+    setTotalMinutesStudied(prev => prev + focusMinutes);
+    updateStreak();
 
-                // Log the session to the backend
-                pomodoroService.logSession(focusMinutes)
-                    .then(() => console.log("Session logged successfully"))
-                    .catch(err => console.error("Failed to log session", err));
+    // Log the session to the backend
+    pomodoroService.logSession(focusMinutes)
+        .then(() => {
+            console.log("Session logged successfully");
+            
+            // ✨ ADD THIS: Check for new achievements
+            achievementsService.checkAchievements()
+                .then(result => {
+                    if (result.count > 0) {
+                        console.log('🎉 New achievements unlocked!', result.newAchievements);
+                        // Optional: Show a toast notification here
+                    }
+                })
+                .catch(err => console.error("Failed to check achievements", err));
+        })
+        .catch(err => console.error("Failed to log session", err));
 
-                setMode('break');
-                setTimeLeft(breakMinutes * 60);
-            } else {
+    setMode('break');
+    setTimeLeft(breakMinutes * 60);
+}else {
                 setMode('focus');
                 setTimeLeft(focusMinutes * 60);
             }

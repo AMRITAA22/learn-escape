@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import tasksService from '../services/tasksService';
 import { Trash2, Plus } from 'lucide-react';
-
+import achievementsService from '../services/achievementsService';  
 export const TasksPage = () => {
     const [tasks, setTasks] = useState<any[]>([]);
     const [newTaskTitle, setNewTaskTitle] = useState('');
@@ -24,17 +24,22 @@ export const TasksPage = () => {
             console.error("Failed to create task", error);
         }
     };
-
-    const handleToggleComplete = async (taskId: string, completed: boolean) => {
-        try {
-            const updatedTask = await tasksService.updateTask(taskId, { completed: !completed });
-            setTasks(prevTasks => prevTasks.map(task => 
-                task._id === taskId ? updatedTask : task
-            ));
-        } catch (error) {
-            console.error("Failed to update task", error);
+const handleToggleComplete = async (taskId: string, completed: boolean) => {
+    try {
+        const updatedTask = await tasksService.updateTask(taskId, { completed: !completed });
+        setTasks(prevTasks => prevTasks.map(task => 
+            task._id === taskId ? updatedTask : task
+        ));
+        
+        // ✨ ADD THIS: Check achievements if task was just completed
+        if (!completed) {  // If we just marked it as complete
+            achievementsService.checkAchievements()
+                .catch(err => console.error("Failed to check achievements", err));
         }
-    };
+    } catch (error) {
+        console.error("Failed to update task", error);
+    }
+};
 
     const handleDeleteTask = async (taskId: string) => {
         if (window.confirm('Are you sure you want to delete this task?')) {

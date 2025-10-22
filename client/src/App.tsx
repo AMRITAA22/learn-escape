@@ -17,6 +17,7 @@ import { PomodoroPage } from './pages/PomodoroPage';
 import { AIAssistantPage } from './pages/AIAssistantPage';
 import { NotesPage } from './pages/NotesPage';
 import { LandingPage } from './pages/LandingPage';
+import { AchievementsPage } from './pages/AchievementsPage';
 function App() {
   return (
     <Router>
@@ -44,6 +45,7 @@ function App() {
                   <Route path="/pomodoro" element={<PomodoroPage />} />
                   <Route path="/ai-assistant" element={<AIAssistantPage />} />
                   <Route path="/notes" element={<NotesPage />} />
+                  <Route path="/achievements" element={<AchievementsPage />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>
