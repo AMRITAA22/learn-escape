@@ -46,22 +46,46 @@ exports.chat = async (req, res) => {
     if (!prompt) {
         return res.status(400).json({ message: 'A prompt is required.' });
     }
+
     try {
         let conversation;
+        let isNewConversation = false;
+
         if (conversationId) {
             conversation = await Conversation.findOne({ _id: conversationId, userId: userId });
         }
+        
         if (!conversation) {
-            conversation = new Conversation({ userId: userId, messages: [] });
+            conversation = new Conversation({ 
+                userId: userId, 
+                messages: [],
+                title: 'New Chat' // Set default title
+            });
+            isNewConversation = true;
+            console.log('Created new conversation');
         }
 
+        // Add the user's new message to the history
         conversation.messages.push({ role: 'user', content: prompt });
 
         let fullPrompt = prompt;
         if (noteContent) {
-            fullPrompt = `Based ONLY on the following notes, answer the question.\n\n---NOTES---\n${noteContent}\n---END NOTES---\n\nQuestion: ${prompt}`;
+            fullPrompt = `You are a helpful study assistant. Based on the following notes, provide a detailed and comprehensive answer to the question. Include explanations, examples, and context where relevant.
+
+---NOTES---
+${noteContent}
+---END NOTES---
+
+Question: ${prompt}
+
+Please provide a thorough explanation.`;
+        } else {
+            fullPrompt = `You are a helpful study assistant. Provide a detailed and comprehensive answer to the following question. Include explanations, examples, and context where relevant.
+
+Question: ${prompt}`;
         }
 
+        // Start a chat session with history for context
         const chatSession = model.startChat({
             history: conversation.messages.slice(0, -1).map(msg => ({
                 role: msg.role === 'assistant' ? 'model' : 'user',
@@ -73,12 +97,51 @@ exports.chat = async (req, res) => {
         const response = await result.response;
         const aiResponseText = response.text();
 
+        // Add the AI's response to the history
         conversation.messages.push({ role: 'assistant', content: aiResponseText });
+
+        // Auto-generate title if this is a new conversation
+        if (isNewConversation) {
+            console.log('Generating title for new conversation...');
+            console.log('First prompt:', prompt);
+            
+            try {
+                const titlePrompt = `Generate a short, descriptive title (maximum 5 words) for a conversation that starts with this question: "${prompt}". Return ONLY the title, no quotes, no extra text.`;
+                
+                const titleResult = await model.generateContent(titlePrompt);
+                const titleResponse = await titleResult.response;
+                let title = titleResponse.text().trim();
+                
+                console.log('Raw AI title response:', title);
+                
+                // Clean up the title
+                title = title.replace(/^["']|["']$/g, '').trim();
+                title = title.replace(/^Title:\s*/i, '').trim();
+                
+                // Limit title length
+                if (title.length > 50) {
+                    title = title.substring(0, 47) + '...';
+                }
+                
+                conversation.title = title || prompt.substring(0, 40);
+                console.log('Final title set to:', conversation.title);
+                
+            } catch (titleError) {
+                console.error('Error generating title:', titleError);
+                // Fallback: use first few words of the prompt
+                const fallbackTitle = prompt.substring(0, 40) + (prompt.length > 40 ? '...' : '');
+                conversation.title = fallbackTitle;
+                console.log('Using fallback title:', conversation.title);
+            }
+        }
+
         await conversation.save();
+        console.log('Conversation saved with ID:', conversation._id, 'Title:', conversation.title);
 
         res.status(200).json({ 
             response: aiResponseText, 
-            conversationId: conversation._id
+            conversationId: conversation._id,
+            title: conversation.title
         });
     } catch (error) {
         console.error("Error communicating with Gemini AI:", error);
@@ -86,7 +149,6 @@ exports.chat = async (req, res) => {
     }
 };
 
-// NEW: Generate flashcards from notes or custom topic
 exports.generateFlashcards = async (req, res) => {
     const userId = req.user.id;
     const { topic, numberOfCards, useUploadedNotes } = req.body;
@@ -124,7 +186,6 @@ Make the flashcards educational, clear, and focused on key concepts. Return ONLY
         const response = await result.response;
         let aiResponseText = response.text();
 
-        // Clean up the response to extract JSON
         aiResponseText = aiResponseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         
         const flashcards = JSON.parse(aiResponseText);
@@ -143,7 +204,6 @@ Make the flashcards educational, clear, and focused on key concepts. Return ONLY
     }
 };
 
-// NEW: Generate and save flashcards directly to a deck
 exports.generateAndSaveDeck = async (req, res) => {
     const userId = req.user.id;
     const { topic, numberOfCards, useUploadedNotes, deckTitle, deckDescription } = req.body;
@@ -188,7 +248,6 @@ Make the flashcards educational, clear, and focused on key concepts. Return ONLY
             throw new Error('Invalid flashcard format received from AI');
         }
 
-        // Create a new deck with the generated flashcards
         const title = deckTitle || `AI Generated: ${topic || 'From Notes'}`;
         const description = deckDescription || `Generated ${flashcards.length} flashcards using AI`;
 
@@ -214,8 +273,13 @@ exports.getConversations = async (req, res) => {
         const conversations = await Conversation.find({ userId: req.user.id })
             .sort({ updatedAt: -1 })
             .select('title updatedAt');
+        
+        console.log('Fetched conversations count:', conversations.length);
+        console.log('Conversation titles:', conversations.map(c => ({ id: c._id, title: c.title })));
+        
         res.status(200).json(conversations);
     } catch (error) {
+        console.error('Error fetching conversations:', error);
         res.status(500).json({ message: "Failed to fetch conversations." });
     }
 };
@@ -231,6 +295,7 @@ exports.getConversationById = async (req, res) => {
         }
         res.status(200).json(conversation);
     } catch (error) {
+        console.error('Error fetching conversation:', error);
         res.status(500).json({ message: "Failed to fetch conversation." });
     }
 };

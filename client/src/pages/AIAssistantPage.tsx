@@ -94,7 +94,17 @@ export const AIAssistantPage = () => {
 
             if (!activeConversationId && result.conversationId) {
                 setActiveConversationId(result.conversationId);
+                // Refresh conversations list to show the new title
                 aiService.getConversations().then(setConversations);
+            } else if (activeConversationId && result.title) {
+                // Update the conversation title in the sidebar if it changed
+                setConversations(prev => 
+                    prev.map(conv => 
+                        conv._id === activeConversationId 
+                            ? { ...conv, title: result.title } 
+                            : conv
+                    )
+                );
             }
         } catch (err: any) {
             const errorMessage = err.response?.data?.message || 'An error occurred. Please try again.';
