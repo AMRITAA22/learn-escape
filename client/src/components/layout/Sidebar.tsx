@@ -1,5 +1,5 @@
 import React from 'react';
-import { Timer, Trophy } from 'lucide-react';
+import { Timer, Trophy, Users } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { 
     LayoutDashboard, 
@@ -24,6 +24,7 @@ const Sidebar = () => {
         { name: 'Tasks', path: '/tasks', icon: CheckSquare },
         { name: 'Pomodoro', path: '/pomodoro', icon: Timer },
         { name: 'AI Assistant', path: '/ai-assistant', icon: Sparkles },
+        { name: 'Study Groups', path: '/study-groups', icon: Users },
         { name: 'Achievements', path: '/achievements', icon: Trophy },
     ];
 

@@ -18,6 +18,8 @@ import { AIAssistantPage } from './pages/AIAssistantPage';
 import { NotesPage } from './pages/NotesPage';
 import { LandingPage } from './pages/LandingPage';
 import { AchievementsPage } from './pages/AchievementsPage';
+import { StudyGroupsListPage } from './pages/StudyGroupsListPage';
+import { StudyGroupDetailPage } from './pages/StudyGroupDetailPage';
 function App() {
   return (
     <Router>
@@ -45,6 +47,8 @@ function App() {
                   <Route path="/pomodoro" element={<PomodoroPage />} />
                   <Route path="/ai-assistant" element={<AIAssistantPage />} />
                   <Route path="/notes" element={<NotesPage />} />
+                  <Route path="/study-groups" element={<StudyGroupsListPage />} />
+                  <Route path="/study-groups/:id" element={<StudyGroupDetailPage />} />
                   <Route path="/achievements" element={<AchievementsPage />} />
                 </Routes>
               </Layout>
