@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import notesService from '../services/notesService';
-import { Plus, Trash2, FileText, Search, Clock, ChevronRight, Lock } from 'lucide-react';
+// import { Plus, Trash2, FileText, Search, Clock, ChevronRight, Lock } from 'lucide-react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import achievementsService from '../services/achievementsService';
-import { exportNoteToPDF } from '../utils/pdfExport';
-import { Download } from 'lucide-react';
+// import { exportNoteToPDF } from '../utils/pdfExport';
+// import { Download } from 'lucide-react';
+import { Plus, Trash2, FileText, Search, Clock, ChevronRight, Lock, Download, BarChart3 } from 'lucide-react';
+import { exportNoteToPDF, exportAllNotesToPDF, exportNotesStats } from '../utils/pdfExport';
+// const [showExportMenu, setShowExportMenu] = useState(false);
 interface INote {
     _id: string;
     title: string;
@@ -26,6 +29,7 @@ export const NotesPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [isSharedNote, setIsSharedNote] = useState(false);
+    const [showExportMenu, setShowExportMenu] = useState(false);
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
     const hasLoadedFromUrl = useRef(false);
 
@@ -178,79 +182,113 @@ export const NotesPage = () => {
             {/* Sidebar */}
             <div className="w-80 border-r border-gray-200 flex flex-col bg-gray-50">
                 {/* Sidebar Header */}
-                <div className="p-4 border-b border-gray-200 bg-white">
-                    <div className="flex items-center justify-between mb-4">
-                        <h1 className="text-xl font-semibold text-gray-900">Notes</h1>
-                        <button
-                            onClick={handleCreateNote}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="New Note"
-                        >
-                            <Plus size={20} className="text-gray-700" />
-                        </button>
-                    </div>
-                    {/* Editor Header */}
-<div className="px-16 py-4 border-b border-gray-200 bg-white">
-    <div className="flex items-center justify-between text-sm text-gray-500">
+                {/* Sidebar Header */}
+<div className="p-4 border-b border-gray-200 bg-white">
+    <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-semibold text-gray-900">Notes</h1>
         <div className="flex items-center gap-2">
-            {isSharedNote && <Lock size={16} className="text-blue-600" />}
-            <FileText size={16} />
-            <ChevronRight size={14} />
-            <span className="truncate max-w-md">{activeNote?.title || 'Untitled'}</span>
-            {isSharedNote && (
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                    Read-only
-                </span>
+            {/* Export Dropdown Menu */}
+            {notes.length > 0 && (
+                <div className="relative">
+                    <button
+                        onClick={() => setShowExportMenu(!showExportMenu)}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
+                        title="Export Options"
+                    >
+                        <Download size={20} className="text-gray-700" />
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    {showExportMenu && (
+                        <>
+                            {/* Backdrop to close menu */}
+                            <div 
+                                className="fixed inset-0 z-10" 
+                                onClick={() => setShowExportMenu(false)}
+                            />
+                            
+                            {/* Menu */}
+                            <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-20">
+                                <div className="px-4 py-2 border-b border-gray-100">
+                                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Export Options</p>
+                                </div>
+                                
+                                <button
+                                    onClick={() => {
+                                        if (activeNote) exportNoteToPDF(activeNote);
+                                        setShowExportMenu(false);
+                                    }}
+                                    disabled={!activeNote}
+                                    className="w-full text-left px-4 py-3 hover:bg-indigo-50 flex items-center gap-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+                                >
+                                    <div className="p-2 bg-indigo-100 rounded-lg group-hover:bg-indigo-200 transition-colors">
+                                        <FileText size={16} className="text-indigo-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium text-gray-900">Current Note</p>
+                                        <p className="text-xs text-gray-500">Export active note as PDF</p>
+                                    </div>
+                                </button>
+                                
+                                <button
+                                    onClick={() => {
+                                        exportAllNotesToPDF(notes);
+                                        setShowExportMenu(false);
+                                    }}
+                                    className="w-full text-left px-4 py-3 hover:bg-green-50 flex items-center gap-3 transition-colors group"
+                                >
+                                    <div className="p-2 bg-green-100 rounded-lg group-hover:bg-green-200 transition-colors">
+                                        <Download size={16} className="text-green-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium text-gray-900">All Notes</p>
+                                        <p className="text-xs text-gray-500">Export {notes.length} notes in one PDF</p>
+                                    </div>
+                                </button>
+                                
+                                <button
+                                    onClick={() => {
+                                        exportNotesStats(notes);
+                                        setShowExportMenu(false);
+                                    }}
+                                    className="w-full text-left px-4 py-3 hover:bg-purple-50 flex items-center gap-3 transition-colors group"
+                                >
+                                    <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                                        <BarChart3 size={16} className="text-purple-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium text-gray-900">Statistics</p>
+                                        <p className="text-xs text-gray-500">Export notes analytics</p>
+                                    </div>
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
             )}
-        </div>
-        <div className="flex items-center gap-3">
-            {/* ADD THIS EXPORT BUTTON */}
-            <button
-                onClick={() => exportNoteToPDF(activeNote!)}
-
-                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-medium"
-                title="Export as PDF"
-            >
-                <Download size={14} />
-                Export PDF
-            </button>
-            {/* END OF ADDITION */}
             
-            {!isSharedNote && isSaving && (
-                <span className="text-xs text-gray-400 flex items-center gap-1">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
-                    Saving...
-                </span>
-            )}
-            {!isSharedNote && !isSaving && (
-                <span className="text-xs text-green-600">Saved</span>
-            )}
-            <span className="text-xs">
-  Last edited: {activeNote?.updatedAt
-    ? new Date(activeNote.updatedAt).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
-    : '—'}
-</span>
-
+            <button
+                onClick={handleCreateNote}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                title="New Note"
+            >
+                <Plus size={20} className="text-gray-700" />
+            </button>
         </div>
     </div>
+    
+    {/* Search Bar */}
+    <div className="relative">
+        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <input
+            type="text"
+            placeholder="Search notes..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm"
+        />
+    </div>
 </div>
-                    {/* Search Bar */}
-                    <div className="relative">
-                        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search notes..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm"
-                        />
-                    </div>
-                </div>
 
                 {/* Notes List */}
                 <div className="flex-1 overflow-y-auto">
