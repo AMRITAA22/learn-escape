@@ -329,7 +329,7 @@ const ResourceCard = ({ resource }: any) => {
   const getResourceLink = (resource: any) => {
     switch (resource.resourceType) {
       case 'note':
-        return `/notes`;
+        return `/notes?id=${resource.resourceId}`;
       case 'flashcard':
         return `/flashcards/${resource.resourceId}`;
       default:

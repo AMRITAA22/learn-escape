@@ -1,137 +1,388 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import notesService from '../services/notesService';
-import { Plus, Trash2, FileText } from 'lucide-react';
+import { Plus, Trash2, FileText, Search, Clock, ChevronRight, Lock } from 'lucide-react';
 import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css'; // Import Quill styles
+import 'react-quill/dist/quill.snow.css';
 import achievementsService from '../services/achievementsService';
+
 interface INote {
     _id: string;
     title: string;
     content: string;
     updatedAt: string;
+    createdAt: string;
+    createdBy: string;
 }
 
 export const NotesPage = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const [notes, setNotes] = useState<INote[]>([]);
     const [activeNote, setActiveNote] = useState<INote | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingNote, setIsLoadingNote] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [isSharedNote, setIsSharedNote] = useState(false);
     const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+    const hasLoadedFromUrl = useRef(false);
 
-    // Fetch all notes on initial load
     useEffect(() => {
-        notesService.getNotes()
-            .then(data => {
-                setNotes(data);
-                if (data.length > 0) {
-                    setActiveNote(data[0]);
-                }
-            })
-            .finally(() => setIsLoading(false));
+        loadNotes();
     }, []);
 
-    const handleCreateNote = async () => {
-    try {
-        const newNote = await notesService.createNote();
-        setNotes(prev => [newNote, ...prev]);
-        setActiveNote(newNote);
-        
-        // ✨ ADD THIS: Check achievements
-        achievementsService.checkAchievements()
-            .catch(err => console.error("Failed to check achievements", err));
-    } catch (error) {
-        console.error("Failed to create note", error);
-    }
-};
+    // Handle URL parameter for shared notes
+    useEffect(() => {
+        const noteId = searchParams.get('id');
+        if (noteId && !hasLoadedFromUrl.current) {
+            hasLoadedFromUrl.current = true;
+            loadSharedNote(noteId);
+        }
+    }, [searchParams]);
 
-    const handleDeleteNote = async (noteId: string) => {
+    const loadNotes = async () => {
+        try {
+            const data = await notesService.getNotes();
+            setNotes(data);
+            
+            // Only auto-select first note if no URL parameter
+            const noteId = searchParams.get('id');
+            if (!noteId && data.length > 0 && !activeNote) {
+                setActiveNote(data[0]);
+                setIsSharedNote(false);
+            }
+        } catch (error) {
+            console.error('Failed to load notes:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const loadSharedNote = async (noteId: string) => {
+        setIsLoadingNote(true);
+        try {
+            const fullNote = await notesService.getNote(noteId);
+            console.log('Loaded shared note:', fullNote);
+            setActiveNote(fullNote);
+            setIsSharedNote(true);
+            
+            // Clear the URL parameter after loading
+            setSearchParams({});
+        } catch (error) {
+            console.error('Failed to load shared note:', error);
+            alert('Failed to load this note. You may not have permission to view it.');
+            // Clear URL parameter on error
+            setSearchParams({});
+            setIsLoadingNote(false);
+        } finally {
+            setIsLoadingNote(false);
+        }
+    };
+
+    const handleNoteClick = (note: INote) => {
+        setActiveNote(note);
+        setIsSharedNote(false);
+        hasLoadedFromUrl.current = false;
+    };
+
+    const handleCreateNote = async () => {
+        try {
+            const newNote = await notesService.createNote();
+            setNotes(prev => [newNote, ...prev]);
+            setActiveNote(newNote);
+            setIsSharedNote(false);
+            
+            achievementsService.checkAchievements()
+                .catch(err => console.error("Failed to check achievements", err));
+        } catch (error) {
+            console.error("Failed to create note", error);
+        }
+    };
+
+    const handleDeleteNote = async (noteId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
         if (window.confirm('Are you sure you want to delete this note?')) {
             try {
                 await notesService.deleteNote(noteId);
                 const updatedNotes = notes.filter(n => n._id !== noteId);
                 setNotes(updatedNotes);
-                setActiveNote(updatedNotes.length > 0 ? updatedNotes[0] : null);
+                if (activeNote?._id === noteId) {
+                    if (updatedNotes.length > 0) {
+                        setActiveNote(updatedNotes[0]);
+                        setIsSharedNote(false);
+                    } else {
+                        setActiveNote(null);
+                        setIsSharedNote(false);
+                    }
+                }
             } catch (error) {
                 console.error("Failed to delete note", error);
             }
         }
     };
 
-    const handleNoteUpdate = (field: 'title' | 'content', value: string) => {
-        if (!activeNote) return;
+    const handleNoteUpdate = async (field: 'title' | 'content', value: string) => {
+        if (!activeNote || isSharedNote) return;
 
-        // Update the UI instantly
         const updatedNote = { ...activeNote, [field]: value };
         setActiveNote(updatedNote);
-        setNotes(prev => prev.map(n => n._id === activeNote._id ? updatedNote : n));
+        setNotes(prev => prev.map(n => n._id === activeNote._id ? { ...n, [field]: value } : n));
 
-        // Debounce the API call to save automatically
         if (debounceTimeout.current) {
             clearTimeout(debounceTimeout.current);
         }
 
-        debounceTimeout.current = setTimeout(() => {
-            notesService.updateNote(activeNote._id, { [field]: value });
-        }, 1500); // Auto-save after 1.5 seconds of inactivity
+        setIsSaving(true);
+        debounceTimeout.current = setTimeout(async () => {
+            try {
+                const saved = await notesService.updateNote(activeNote._id, { [field]: value });
+                console.log('Note saved:', saved);
+                setActiveNote(saved);
+                setNotes(prev => prev.map(n => n._id === saved._id ? saved : n));
+            } catch (error) {
+                console.error('Failed to save note:', error);
+                alert('Failed to save note. Please try again.');
+            } finally {
+                setIsSaving(false);
+            }
+        }, 1000);
     };
 
-    if (isLoading) return <div>Loading notes...</div>;
+    const filteredNotes = notes.filter(note =>
+        note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (note.content && note.content.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+
+    const getPreviewText = (html: string) => {
+        if (!html) return '';
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        return div.textContent || div.innerText || '';
+    };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-white flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading your notes...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="flex h-[calc(100vh-100px)]">
-            {/* Notes List Sidebar */}
-            <div className="w-1/4 bg-gray-50 border-r p-4 flex flex-col">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold">All Notes</h2>
-                    <button onClick={handleCreateNote} className="p-2 hover:bg-gray-200 rounded-full"><Plus size={20} /></button>
-                </div>
-                <div className="overflow-y-auto">
-                    {notes.map(note => (
-                        <div
-                            key={note._id}
-                            onClick={() => setActiveNote(note)}
-                            className={`p-3 rounded-lg cursor-pointer group ${activeNote?._id === note._id ? 'bg-indigo-100' : 'hover:bg-gray-100'}`}
+        <div className="flex h-screen bg-white">
+            {/* Sidebar */}
+            <div className="w-80 border-r border-gray-200 flex flex-col bg-gray-50">
+                {/* Sidebar Header */}
+                <div className="p-4 border-b border-gray-200 bg-white">
+                    <div className="flex items-center justify-between mb-4">
+                        <h1 className="text-xl font-semibold text-gray-900">Notes</h1>
+                        <button
+                            onClick={handleCreateNote}
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title="New Note"
                         >
-                            <div className="flex justify-between items-start">
-                                <p className="font-semibold truncate pr-2">{note.title}</p>
-                                <button onClick={(e) => { e.stopPropagation(); handleDeleteNote(note._id); }} className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500">
-                                    <Trash2 size={16} />
-                                </button>
+                            <Plus size={20} className="text-gray-700" />
+                        </button>
+                    </div>
+                    
+                    {/* Search Bar */}
+                    <div className="relative">
+                        <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Search notes..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-300 text-sm"
+                        />
+                    </div>
+                </div>
+
+                {/* Notes List */}
+                <div className="flex-1 overflow-y-auto">
+                    {/* Shared Note Indicator */}
+                    {isSharedNote && activeNote && (
+                        <div className="p-2">
+                            <p className="text-xs font-semibold text-gray-500 mb-2 px-3">SHARED WITH YOU</p>
+                            <div className="p-3 rounded-lg mb-1 bg-blue-50 border border-blue-200">
+                                <div className="flex items-start gap-2 mb-1">
+                                    <Lock size={14} className="text-blue-600 mt-0.5" />
+                                    <h3 className="font-medium text-sm truncate flex-1 text-blue-900">
+                                        {activeNote.title || 'Untitled'}
+                                    </h3>
+                                </div>
+                                <p className="text-xs text-blue-600">Read-only • Shared via study group</p>
                             </div>
-                            <p className="text-xs text-gray-400">{new Date(note.updatedAt).toLocaleDateString()}</p>
                         </div>
-                    ))}
+                    )}
+
+                    {/* My Notes */}
+                    {filteredNotes.length === 0 ? (
+                        <div className="p-8 text-center text-gray-400">
+                            <FileText size={48} className="mx-auto mb-2 opacity-30" />
+                            <p className="text-sm">
+                                {searchQuery ? 'No notes found' : 'No notes yet'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="p-2">
+                            {(isSharedNote && activeNote) && (
+                                <p className="text-xs font-semibold text-gray-500 mb-2 px-3 mt-4">MY NOTES</p>
+                            )}
+                            {filteredNotes.map(note => {
+                                const isActive = !isSharedNote && activeNote?._id === note._id;
+                                const preview = getPreviewText(note.content).slice(0, 80);
+                                
+                                return (
+                                    <div
+                                        key={note._id}
+                                        onClick={() => handleNoteClick(note)}
+                                        className={`group p-3 rounded-lg cursor-pointer mb-1 transition-all ${
+                                            isActive
+                                                ? 'bg-white shadow-sm border border-gray-200'
+                                                : 'hover:bg-white hover:shadow-sm'
+                                        }`}
+                                    >
+                                        <div className="flex items-start justify-between mb-1">
+                                            <h3 className={`font-medium text-sm truncate flex-1 ${
+                                                isActive ? 'text-gray-900' : 'text-gray-700'
+                                            }`}>
+                                                {note.title || 'Untitled'}
+                                            </h3>
+                                            <button
+                                                onClick={(e) => handleDeleteNote(note._id, e)}
+                                                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-50 rounded transition-all"
+                                            >
+                                                <Trash2 size={14} className="text-red-500" />
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-gray-500 truncate mb-1">
+                                            {preview || 'No content'}
+                                        </p>
+                                        <div className="flex items-center text-xs text-gray-400">
+                                            <Clock size={12} className="mr-1" />
+                                            {new Date(note.updatedAt).toLocaleDateString('en-US', {
+                                                month: 'short',
+                                                day: 'numeric'
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Main Note Editor */}
-            <div className="w-3/4 p-8 flex flex-col">
-                {activeNote ? (
+            {/* Main Editor */}
+            <div className="flex-1 flex flex-col">
+                {isLoadingNote ? (
+                    <div className="flex-1 flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                            <p className="mt-2 text-sm text-gray-600">Loading note...</p>
+                        </div>
+                    </div>
+                ) : activeNote ? (
                     <>
-                        <input
-                            type="text"
-                            value={activeNote.title}
-                            onChange={(e) => handleNoteUpdate('title', e.target.value)}
-                            className="text-4xl font-bold border-none focus:outline-none bg-transparent mb-4"
-                            placeholder="Untitled Note"
-                        />
-                        <ReactQuill
-                            value={activeNote.content}
-                            onChange={(content) => handleNoteUpdate('content', content)}
-                            theme="snow"
-                            className="flex-grow"
-                            modules={{ toolbar: [
-                                [{ 'header': [1, 2, 3, false] }],
-                                ['bold', 'italic', 'underline', 'strike'],
-                                [{'list': 'ordered'}, {'list': 'bullet'}],
-                                ['link', 'image'],
-                                ['clean']
-                            ]}}
-                        />
+                        {/* Editor Header */}
+                        <div className="px-16 py-4 border-b border-gray-200 bg-white">
+                            <div className="flex items-center justify-between text-sm text-gray-500">
+                                <div className="flex items-center gap-2">
+                                    {isSharedNote && <Lock size={16} className="text-blue-600" />}
+                                    <FileText size={16} />
+                                    <ChevronRight size={14} />
+                                    <span className="truncate max-w-md">{activeNote.title || 'Untitled'}</span>
+                                    {isSharedNote && (
+                                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                            Read-only
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    {!isSharedNote && isSaving && (
+                                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
+                                            Saving...
+                                        </span>
+                                    )}
+                                    {!isSharedNote && !isSaving && (
+                                        <span className="text-xs text-green-600">Saved</span>
+                                    )}
+                                    <span className="text-xs">
+                                        Last edited: {new Date(activeNote.updatedAt).toLocaleString('en-US', {
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Editor Content */}
+                        <div className="flex-1 overflow-y-auto px-16 py-8 bg-white">
+                            <input
+                                type="text"
+                                value={activeNote.title}
+                                onChange={(e) => handleNoteUpdate('title', e.target.value)}
+                                disabled={isSharedNote}
+                                className={`w-full text-5xl font-bold border-none focus:outline-none bg-transparent mb-4 text-gray-900 placeholder-gray-300 ${
+                                    isSharedNote ? 'cursor-not-allowed opacity-70' : ''
+                                }`}
+                                placeholder="Untitled"
+                            />
+                            
+                            <div className="prose prose-lg max-w-none">
+                                <ReactQuill
+                                    value={activeNote.content || ''}
+                                    onChange={(content) => handleNoteUpdate('content', content)}
+                                    readOnly={isSharedNote}
+                                    theme="snow"
+                                    className="border-none"
+                                    placeholder={isSharedNote ? "" : "Start writing..."}
+                                    modules={{
+                                        toolbar: isSharedNote ? false : [
+                                            [{ 'header': [1, 2, 3, false] }],
+                                            ['bold', 'italic', 'underline', 'strike'],
+                                            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                                            [{ 'color': [] }, { 'background': [] }],
+                                            ['blockquote', 'code-block'],
+                                            ['link', 'image'],
+                                            ['clean']
+                                        ]
+                                    }}
+                                />
+                            </div>
+                        </div>
                     </>
                 ) : (
-                    <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
-                        <FileText size={48} />
-                        <p className="mt-4">Select a note to view, or create a new one.</p>
+                    <div className="flex-1 flex flex-col items-center justify-center text-center bg-white">
+                        <div className="max-w-md">
+                            <FileText size={64} className="text-gray-300 mx-auto mb-4" />
+                            <h2 className="text-2xl font-semibold text-gray-700 mb-2">
+                                {notes.length === 0 ? 'Create your first note' : 'Select a note to view'}
+                            </h2>
+                            <p className="text-gray-500 mb-6">
+                                {notes.length === 0
+                                    ? 'Click the + button to start writing'
+                                    : 'Choose a note from the sidebar or create a new one'}
+                            </p>
+                            {notes.length === 0 && (
+                                <button
+                                    onClick={handleCreateNote}
+                                    className="inline-flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+                                >
+                                    <Plus size={20} />
+                                    New Note
+                                </button>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
