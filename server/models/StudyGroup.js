@@ -113,9 +113,21 @@ const StudyGroupSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Generate unique 6-character group code
-StudyGroupSchema.pre('save', function(next) {
+// Change the pre-save hook
+StudyGroupSchema.pre('save', async function(next) {
     if (!this.groupCode) {
-        this.groupCode = generateGroupCode();
+        let code;
+        let isUnique = false;
+        
+        // Keep generating until we get a unique code
+        while (!isUnique) {
+            code = generateGroupCode();
+            const existingGroup = await mongoose.model('StudyGroup').findOne({ groupCode: code });
+            if (!existingGroup) {
+                isUnique = true;
+            }
+        }
+        this.groupCode = code;
     }
     next();
 });

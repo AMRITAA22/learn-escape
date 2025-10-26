@@ -19,7 +19,7 @@ import { NotesPage } from './pages/NotesPage';
 import { LandingPage } from './pages/LandingPage';
 import { AchievementsPage } from './pages/AchievementsPage';
 import { StudyGroupsListPage } from './pages/StudyGroupsListPage';
-import { StudyGroupDetailPage } from './pages/StudyGroupDetailPage';
+import StudyGroupDetailPage from './pages/StudyGroupDetailPage';
 function App() {
   return (
     <Router>

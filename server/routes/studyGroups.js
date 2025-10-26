@@ -9,6 +9,7 @@ const {
     deleteGroup,
     addGoal,
     updateGoalProgress,
+    deleteGoal,  // ADD THIS LINE
     shareResource,
     getSharedResources,
     sendMessage,
@@ -21,35 +22,36 @@ router.use(protect);
 
 // Main group routes
 router.route('/')
-    .get(getUserGroups)      // GET /api/study-groups - Get user's groups
-    .post(createGroup);      // POST /api/study-groups - Create new group
+    .get(getUserGroups)
+    .post(createGroup);
 
 // Join group with code
-router.post('/join', joinGroup);  // POST /api/study-groups/join
+router.post('/join', joinGroup);
 
 // Single group operations
 router.route('/:id')
-    .get(getGroupById)       // GET /api/study-groups/:id - Get group details
-    .delete(deleteGroup);    // DELETE /api/study-groups/:id - Delete group
+    .get(getGroupById)
+    .delete(deleteGroup);
 
 // Leave group
-router.delete('/:id/leave', leaveGroup);  // DELETE /api/study-groups/:id/leave
+router.delete('/:id/leave', leaveGroup);
 
 // Group goals
 router.route('/:id/goals')
-    .post(addGoal);  // POST /api/study-groups/:id/goals - Add goal
+    .post(addGoal);
 
-router.put('/:id/goals/:goalId', updateGoalProgress);  // PUT /api/study-groups/:id/goals/:goalId - Update goal
+router.put('/:id/goals/:goalId', updateGoalProgress);
+router.delete('/:id/goals/:goalId', deleteGoal);  // MOVE THIS BEFORE module.exports
 
 // Group resources
 router.route('/:id/resources')
-    .get(getSharedResources)   // GET /api/study-groups/:id/resources - Get resources
-    .post(shareResource);      // POST /api/study-groups/:id/resources - Share resource
+    .get(getSharedResources)
+    .post(shareResource);
 
 // Group chat
-router.post('/:id/chat', sendMessage);  // POST /api/study-groups/:id/chat - Send message
+router.post('/:id/chat', sendMessage);
 
 // Member management (admin only)
-router.delete('/:id/members/:memberId', removeMember);  // DELETE /api/study-groups/:id/members/:memberId
+router.delete('/:id/members/:memberId', removeMember);
 
 module.exports = router;

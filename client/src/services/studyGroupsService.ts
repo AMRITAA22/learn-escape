@@ -157,6 +157,16 @@ const removeMember = async (groupId: string, memberId: string) => {
     }
 };
 
+const deleteGoal = async (groupId: string, goalId: string) => {
+    try {
+        const response = await axios.delete(`${API_URL}/${groupId}/goals/${goalId}`, getConfig());
+        return response.data;
+    } catch (error) {
+        console.error("Failed to delete goal", error);
+        throw error;
+    }
+};
+
 const studyGroupsService = {
     getUserGroups,
     getGroupById,
@@ -165,6 +175,7 @@ const studyGroupsService = {
     leaveGroup,
     deleteGroup,
     addGoal,
+    deleteGoal,
     updateGoalProgress,
     shareResource,
     getSharedResources,

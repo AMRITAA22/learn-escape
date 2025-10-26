@@ -1,20 +1,28 @@
 const StudyGroup = require('../models/StudyGroup');
-const Note = require('../models/Note');
 
 // @desc    Create a new study group
 // @route   POST /api/study-groups
-const createGroup = async (req, res) => {
+exports.createGroup = async (req, res) => {
     const { name, description, isPrivate } = req.body;
 
     try {
-        // Generate random group code (6 uppercase letters/numbers)
-        const groupCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+        // Generate unique group code
+        let groupCode;
+        let isUnique = false;
+        
+        while (!isUnique) {
+            groupCode = generateGroupCode();
+            const existing = await StudyGroup.findOne({ groupCode });
+            if (!existing) {
+                isUnique = true;
+            }
+        }
 
         const group = await StudyGroup.create({
             name,
             description,
-            isPrivate: isPrivate !== false,
             groupCode,
+            isPrivate: isPrivate !== false,
             createdBy: req.user.id,
             members: [{
                 userId: req.user.id,
@@ -24,17 +32,17 @@ const createGroup = async (req, res) => {
         });
 
         await group.populate('members.userId', 'name email');
+        await group.populate('createdBy', 'name');
         res.status(201).json(group);
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        console.error('Error creating group:', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
     }
 };
 
-
 // @desc    Get all groups user is a member of
 // @route   GET /api/study-groups
-const getUserGroups = async (req, res) => {
+exports.getUserGroups = async (req, res) => {
     try {
         const groups = await StudyGroup.find({
             'members.userId': req.user.id,
@@ -45,17 +53,19 @@ const getUserGroups = async (req, res) => {
 
         res.status(200).json(groups);
     } catch (error) {
+        console.error('Error getting groups:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 // @desc    Get single group by ID
 // @route   GET /api/study-groups/:id
-const getGroupById = async (req, res) => {
+exports.getGroupById = async (req, res) => {
     try {
         const group = await StudyGroup.findById(req.params.id)
             .populate('members.userId', 'name email')
             .populate('createdBy', 'name')
+            .populate('goals.createdBy', 'name')
             .populate('sharedResources.sharedBy', 'name')
             .populate('chat.userId', 'name');
 
@@ -71,13 +81,14 @@ const getGroupById = async (req, res) => {
 
         res.status(200).json(group);
     } catch (error) {
+        console.error('Error getting group:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 // @desc    Join a group using group code
 // @route   POST /api/study-groups/join
-const joinGroup = async (req, res) => {
+exports.joinGroup = async (req, res) => {
     const { groupCode } = req.body;
 
     try {
@@ -110,13 +121,14 @@ const joinGroup = async (req, res) => {
 
         res.status(200).json(group);
     } catch (error) {
+        console.error('Error joining group:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 // @desc    Leave a group
 // @route   DELETE /api/study-groups/:id/leave
-const leaveGroup = async (req, res) => {
+exports.leaveGroup = async (req, res) => {
     try {
         const group = await StudyGroup.findById(req.params.id);
 
@@ -135,13 +147,14 @@ const leaveGroup = async (req, res) => {
 
         res.status(200).json({ message: 'Left group successfully' });
     } catch (error) {
+        console.error('Error leaving group:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 // @desc    Delete a group
 // @route   DELETE /api/study-groups/:id
-const deleteGroup = async (req, res) => {
+exports.deleteGroup = async (req, res) => {
     try {
         const group = await StudyGroup.findById(req.params.id);
 
@@ -157,13 +170,14 @@ const deleteGroup = async (req, res) => {
         await group.deleteOne();
         res.status(200).json({ message: 'Group deleted successfully' });
     } catch (error) {
+        console.error('Error deleting group:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 // @desc    Add a goal to group
 // @route   POST /api/study-groups/:id/goals
-const addGoal = async (req, res) => {
+exports.addGoal = async (req, res) => {
     const { title, description, targetValue, type, deadline } = req.body;
 
     try {
@@ -193,13 +207,14 @@ const addGoal = async (req, res) => {
         await group.save();
         res.status(201).json(group);
     } catch (error) {
+        console.error('Error adding goal:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 // @desc    Update goal progress
 // @route   PUT /api/study-groups/:id/goals/:goalId
-const updateGoalProgress = async (req, res) => {
+exports.updateGoalProgress = async (req, res) => {
     const { progress } = req.body;
 
     try {
@@ -223,13 +238,41 @@ const updateGoalProgress = async (req, res) => {
         await group.save();
         res.status(200).json(group);
     } catch (error) {
+        console.error('Error updating goal:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// @desc    Delete a goal
+// @route   DELETE /api/study-groups/:id/goals/:goalId
+exports.deleteGoal = async (req, res) => {
+    try {
+        const group = await StudyGroup.findById(req.params.id);
+
+        if (!group) {
+            return res.status(404).json({ message: 'Group not found' });
+        }
+
+        // Check if user is a member
+        const isMember = group.members.some(m => m.userId.toString() === req.user.id);
+        if (!isMember) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        // Remove the goal
+        group.goals = group.goals.filter(g => g._id.toString() !== req.params.goalId);
+        
+        await group.save();
+        res.status(200).json({ message: 'Goal deleted successfully', group });
+    } catch (error) {
+        console.error('Error deleting goal:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 // @desc    Share a resource with group
 // @route   POST /api/study-groups/:id/resources
-const shareResource = async (req, res) => {
+exports.shareResource = async (req, res) => {
     const { resourceType, resourceId, title } = req.body;
 
     try {
@@ -258,13 +301,14 @@ const shareResource = async (req, res) => {
 
         res.status(201).json(group);
     } catch (error) {
+        console.error('Error sharing resource:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 // @desc    Get shared resources
 // @route   GET /api/study-groups/:id/resources
-const getSharedResources = async (req, res) => {
+exports.getSharedResources = async (req, res) => {
     try {
         const group = await StudyGroup.findById(req.params.id)
             .populate('sharedResources.sharedBy', 'name');
@@ -281,13 +325,14 @@ const getSharedResources = async (req, res) => {
 
         res.status(200).json(group.sharedResources);
     } catch (error) {
+        console.error('Error getting resources:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 // @desc    Send a chat message
 // @route   POST /api/study-groups/:id/chat
-const sendMessage = async (req, res) => {
+exports.sendMessage = async (req, res) => {
     const { message } = req.body;
 
     try {
@@ -314,13 +359,14 @@ const sendMessage = async (req, res) => {
 
         res.status(201).json(group.chat[group.chat.length - 1]);
     } catch (error) {
+        console.error('Error sending message:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
 // @desc    Remove member (admin only)
 // @route   DELETE /api/study-groups/:id/members/:memberId
-const removeMember = async (req, res) => {
+exports.removeMember = async (req, res) => {
     try {
         const group = await StudyGroup.findById(req.params.id);
 
@@ -344,21 +390,17 @@ const removeMember = async (req, res) => {
 
         res.status(200).json({ message: 'Member removed successfully' });
     } catch (error) {
+        console.error('Error removing member:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };
 
-module.exports = {
-    createGroup,
-    getUserGroups,
-    getGroupById,
-    joinGroup,
-    leaveGroup,
-    deleteGroup,
-    addGoal,
-    updateGoalProgress,
-    shareResource,
-    getSharedResources,
-    sendMessage,
-    removeMember,
-};
+// Helper function to generate group code
+function generateGroupCode() {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return code;
+}

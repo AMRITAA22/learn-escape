@@ -1,413 +1,781 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import studyGroupsService from '../services/studyGroupsService';
 import { useAuth } from '../context/AuthContext';
-import { Users, Target, Share2, MessageCircle, ArrowLeft, Plus, Trash2, LogOut, CheckCircle } from 'lucide-react';
+import { Users, Target, Share2, ArrowLeft, Plus, Trash2, LogOut, CheckCircle, BookOpen, MessageCircle, Send } from 'lucide-react';
 
-export const StudyGroupDetailPage = () => {
-    const { id } = useParams<{ id: string }>();
-    const { user } = useAuth();
-    const navigate = useNavigate();
-    const [group, setGroup] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'resources' | 'chat'>('overview');
-    const [newMessage, setNewMessage] = useState('');
-    const [newGoalTitle, setNewGoalTitle] = useState('');
-    const [newGoalTarget, setNewGoalTarget] = useState(0);
-    const [newGoalType, setNewGoalType] = useState<'hours' | 'sessions' | 'tasks'>('hours');
-    const [showGoalModal, setShowGoalModal] = useState(false);
+interface Member {
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  role: 'admin' | 'member';
+  joinedAt: string;
+}
 
-    useEffect(() => {
-        if (id) {
-            loadGroup();
-        }
-    }, [id]);
-
-    const loadGroup = async () => {
-        try {
-            setIsLoading(true);
-            const data = await studyGroupsService.getGroupById(id!);
-            setGroup(data);
-        } catch (error) {
-            console.error('Failed to load group:', error);
-            alert('Failed to load group');
-            navigate('/study-groups');
-        } finally {
-            setIsLoading(false);
-        }
+interface StudyGroup {
+  _id: string;
+  name: string;
+  description: string;
+  subject: string;
+  groupCode?: string;
+  members: Member[];
+  createdBy: {
+    _id: string;
+    name: string;
+  };
+  goals: Array<{
+    _id: string;
+    title: string;
+    description: string;
+    targetDate: string;
+    targetValue: number;
+    currentValue: number;
+    type: 'hours' | 'sessions' | 'tasks';
+    completed: boolean;
+  }>;
+  sharedResources: Array<{
+    _id: string;
+    title: string;
+    resourceType: 'note' | 'flashcard';
+    resourceId: string;
+    sharedBy: {
+      _id: string;
+      name: string;
     };
-
-    const handleLeaveGroup = async () => {
-        if (window.confirm('Are you sure you want to leave this group?')) {
-            try {
-                await studyGroupsService.leaveGroup(id!);
-                navigate('/study-groups');
-            } catch (error: any) {
-                alert(error.response?.data?.message || 'Failed to leave group');
-            }
-        }
+    sharedAt: string;
+  }>;
+  chat?: Array<{
+    _id: string;
+    userId: {
+      _id: string;
+      name: string;
     };
+    message: string;
+    createdAt: string;
+  }>;
+}
 
-    const handleAddGoal = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newGoalTitle.trim() || newGoalTarget <= 0) {
-            alert('Please fill in all fields');
-            return;
-        }
+// Chat Tab Component
+const ChatTab = ({ group, onMessageSent }: any) => {
+  const { user } = useAuth();
+  const [newMessage, setNewMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
 
-        try {
-            await studyGroupsService.addGoal(id!, {
-                title: newGoalTitle,
-                targetValue: newGoalTarget,
-                type: newGoalType,
-            });
-            setNewGoalTitle('');
-            setNewGoalTarget(0);
-            setShowGoalModal(false);
-            loadGroup();
-        } catch (error) {
-            alert('Failed to add goal');
-        }
-    };
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [group.chat]);
 
-    const handleUpdateGoalProgress = async (goalId: string, progress: number) => {
-        try {
-            await studyGroupsService.updateGoalProgress(id!, goalId, progress);
-            loadGroup();
-        } catch (error) {
-            alert('Failed to update progress');
-        }
-    };
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
 
-    const handleSendMessage = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newMessage.trim()) return;
+    setSending(true);
+    try {
+      await studyGroupsService.sendMessage(group._id, newMessage);
+      setNewMessage('');
+      onMessageSent();
+    } catch (error) {
+      alert('Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
 
-        try {
-            await studyGroupsService.sendMessage(id!, newMessage);
-            setNewMessage('');
-            loadGroup();
-        } catch (error) {
-            alert('Failed to send message');
-        }
-    };
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-gray-50 p-8 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading group...</p>
+  return (
+    <div className="flex flex-col h-[600px]">
+      <h2 className="text-2xl font-bold text-gray-900 mb-4">Group Chat</h2>
+      
+      {/* Messages Container */}
+      <div className="flex-1 overflow-y-auto bg-gray-50 rounded-lg p-4 mb-4 space-y-4">
+        {(!group.chat || group.chat.length === 0) ? (
+          <div className="text-center py-12">
+            <MessageCircle size={48} className="text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No messages yet. Start the conversation!</p>
+          </div>
+        ) : (
+          <>
+            {group.chat.map((msg: any) => {
+              const isOwnMessage = msg.userId._id === user?._id;
+              return (
+                <div key={msg._id}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {isOwnMessage ? 'You' : msg.userId.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(msg.createdAt).toLocaleString('en-US', { 
+                        month: 'numeric',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  </div>
+                  <p className="text-sm text-gray-700 ml-0">{msg.message}</p>
                 </div>
-            </div>
-        );
+              );
+            })}
+            <div ref={chatEndRef} />
+          </>
+        )}
+      </div>
+
+      {/* Message Input */}
+      <form onSubmit={handleSendMessage} className="flex gap-2">
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Type a message..."
+          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          disabled={sending}
+        />
+        <button
+          type="submit"
+          disabled={sending || !newMessage.trim()}
+          className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-semibold"
+        >
+          Send
+        </button>
+      </form>
+    </div>
+  );
+};
+
+// Resources Tab Component
+const ResourcesTab = ({ group, onResourceShared }: any) => {
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareType, setShareType] = useState<'note' | 'flashcard'>('note');
+  const [userNotes, setUserNotes] = useState<any[]>([]);
+  const [userFlashcards, setUserFlashcards] = useState<any[]>([]);
+  const [selectedResource, setSelectedResource] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const loadUserResources = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      if (shareType === 'note') {
+        const notesService = (await import('../services/notesService')).default;
+        const notes = await notesService.getNotes();
+        setUserNotes(notes);
+      } else {
+        const flashcardsService = (await import('../services/flashcardsService')).default;
+        const decks = await flashcardsService.getDecks();
+        setUserFlashcards(decks);
+      }
+    } catch (error) {
+      console.error('Failed to load resources:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [shareType]);
+
+  useEffect(() => {
+    if (showShareModal) {
+      loadUserResources();
+    }
+  }, [showShareModal, loadUserResources]);
+
+  const handleShareResource = async () => {
+    if (!selectedResource) {
+      alert('Please select a resource to share');
+      return;
     }
 
-    if (!group) return null;
+    try {
+      const resource = shareType === 'note' 
+        ? userNotes.find(n => n._id === selectedResource)
+        : userFlashcards.find(f => f._id === selectedResource);
 
-    const isAdmin = group.members.find((m: any) => m.userId._id === user?._id)?.role === 'admin';
+      await studyGroupsService.shareResource(group._id, {
+        resourceType: shareType,
+        resourceId: selectedResource,
+        title: resource?.title || resource?.name || 'Untitled',
+      });
 
-    return (
-        <div className="min-h-screen bg-gray-50 p-8">
-            {/* Header */}
-            <div className="mb-8">
-                <Link to="/study-groups" className="text-indigo-600 hover:text-indigo-800 flex items-center gap-2 mb-4">
-                    <ArrowLeft size={20} />
-                    Back to Groups
-                </Link>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex items-start justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 mb-2">{group.name}</h1>
-                            <p className="text-gray-600 mb-4">{group.description}</p>
-                            <div className="flex gap-4 text-sm text-gray-600">
-                                <div className="flex items-center gap-1">
-                                    <Users size={16} />
-                                    <span>{group.members.length} members</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                    <Target size={16} />
-                                    <span>{group.goals.length} goals</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="bg-gray-50 p-3 rounded-lg mb-3">
-                                <p className="text-xs text-gray-500">Group Code</p>
-                                <p className="text-xl font-bold text-indigo-600 tracking-widest">{group.groupCode}</p>
-                            </div>
-                            {!isAdmin && (
-                                <button
-                                    onClick={handleLeaveGroup}
-                                    className="text-red-600 hover:text-red-800 text-sm font-semibold flex items-center gap-1"
-                                >
-                                    <LogOut size={16} />
-                                    Leave Group
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
+      setShowShareModal(false);
+      setSelectedResource('');
+      onResourceShared();
+    } catch (error) {
+      alert('Failed to share resource');
+    }
+  };
 
-            {/* Tabs */}
-            <div className="bg-white rounded-lg shadow-md mb-8">
-                <div className="border-b border-gray-200">
-                    <div className="flex">
-                        {['overview', 'goals', 'resources', 'chat'].map((tab) => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab as any)}
-                                className={`flex-1 px-6 py-4 text-sm font-medium capitalize ${
-                                    activeTab === tab
-                                        ? 'border-b-2 border-indigo-600 text-indigo-600'
-                                        : 'text-gray-600 hover:text-gray-900'
-                                }`}
-                            >
-                                {tab}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Shared Resources</h2>
+        <button 
+          onClick={() => setShowShareModal(true)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+        >
+          <Share2 size={16} />
+          Share Resource
+        </button>
+      </div>
 
-                <div className="p-6">
-                    {/* Overview Tab */}
-                    {activeTab === 'overview' && (
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">Members</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {group.members.map((member: any) => (
-                                    <div key={member.userId._id} className="bg-gray-50 p-4 rounded-lg flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
-                                            {member.userId.name.charAt(0).toUpperCase()}
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-gray-900">{member.userId.name}</p>
-                                            <p className="text-xs text-gray-500 capitalize">{member.role}</p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Goals Tab */}
-                    {activeTab === 'goals' && (
-                        <div>
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold text-gray-900">Group Goals</h2>
-                                <button
-                                    onClick={() => setShowGoalModal(true)}
-                                    className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
-                                >
-                                    <Plus size={16} />
-                                    Add Goal
-                                </button>
-                            </div>
-
-                            {group.goals.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <Target size={48} className="text-gray-300 mx-auto mb-4" />
-                                    <p className="text-gray-500">No goals yet. Create one to get started!</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {group.goals.map((goal: any) => (
-                                        <GoalCard
-                                            key={goal._id}
-                                            goal={goal}
-                                            onUpdateProgress={handleUpdateGoalProgress}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Resources Tab */}
-                    {activeTab === 'resources' && (
-                        <div>
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold text-gray-900">Shared Resources</h2>
-                                <button className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2">
-                                    <Share2 size={16} />
-                                    Share Resource
-                                </button>
-                            </div>
-
-                            {group.sharedResources.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <Share2 size={48} className="text-gray-300 mx-auto mb-4" />
-                                    <p className="text-gray-500">No resources shared yet</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {group.sharedResources.map((resource: any) => (
-                                        <div key={resource._id} className="bg-gray-50 p-4 rounded-lg">
-                                            <h3 className="font-semibold text-gray-900">{resource.title}</h3>
-                                            <p className="text-sm text-gray-600">
-                                                Shared by {resource.sharedBy.name} • {new Date(resource.sharedAt).toLocaleDateString()}
-                                            </p>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Chat Tab */}
-                    {activeTab === 'chat' && (
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">Group Chat</h2>
-                            <div className="bg-gray-50 rounded-lg p-4 h-96 overflow-y-auto mb-4">
-                                {group.chat.length === 0 ? (
-                                    <p className="text-gray-500 text-center">No messages yet. Start the conversation!</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {group.chat.map((msg: any) => (
-                                            <div key={msg._id} className="bg-white p-3 rounded-lg">
-                                                <p className="font-semibold text-sm text-gray-900">{msg.userId.name}</p>
-                                                <p className="text-gray-700">{msg.message}</p>
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    {new Date(msg.createdAt).toLocaleString()}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                            <form onSubmit={handleSendMessage} className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Type a message..."
-                                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                />
-                                <button
-                                    type="submit"
-                                    className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
-                                >
-                                    Send
-                                </button>
-                            </form>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Add Goal Modal */}
-            {showGoalModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-                        <h2 className="text-2xl font-bold text-gray-900 mb-6">Add Group Goal</h2>
-                        <form onSubmit={handleAddGoal}>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Goal Title</label>
-                                <input
-                                    type="text"
-                                    value={newGoalTitle}
-                                    onChange={(e) => setNewGoalTitle(e.target.value)}
-                                    placeholder="e.g., Study 100 hours together"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                />
-                            </div>
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Goal Type</label>
-                                <select
-                                    value={newGoalType}
-                                    onChange={(e) => setNewGoalType(e.target.value as any)}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                >
-                                    <option value="hours">Study Hours</option>
-                                    <option value="sessions">Pomodoro Sessions</option>
-                                    <option value="tasks">Tasks Completed</option>
-                                </select>
-                            </div>
-                            <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Target Value</label>
-                                <input
-                                    type="number"
-                                    value={newGoalTarget || ''}
-                                    onChange={(e) => setNewGoalTarget(parseInt(e.target.value) || 0)}
-                                    placeholder="e.g., 100"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                />
-                            </div>
-                            <div className="flex gap-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowGoalModal(false)}
-                                    className="flex-1 bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700"
-                                >
-                                    Add Goal
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+      {group.sharedResources.length === 0 ? (
+        <div className="text-center py-12">
+          <Share2 size={48} className="text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">No resources shared yet. Share your notes or flashcards!</p>
         </div>
-    );
-};
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {group.sharedResources.map((resource: any) => (
+            <ResourceCard key={resource._id} resource={resource} />
+          ))}
+        </div>
+      )}
 
-// Goal Card Component
-const GoalCard = ({ goal, onUpdateProgress }: any) => {
-    const progressPercent = (goal.currentValue / goal.targetValue) * 100;
-
-    return (
-        <div className={`p-6 rounded-lg ${goal.completed ? 'bg-green-50 border-2 border-green-200' : 'bg-white border border-gray-200'}`}>
-            <div className="flex items-start justify-between mb-4">
-                <div>
-                    <h3 className="font-bold text-gray-900">{goal.title}</h3>
-                    <p className="text-sm text-gray-600 capitalize">{goal.type}</p>
-                </div>
-                {goal.completed && <CheckCircle className="text-green-600" size={24} />}
-            </div>
-
+      {/* Share Resource Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Share Resource</h2>
+            
             <div className="mb-4">
-                <div className="flex justify-between text-sm mb-2">
-                    <span className="text-gray-600">Progress</span>
-                    <span className="font-bold text-gray-900">
-                        {goal.currentValue} / {goal.targetValue}
-                    </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div
-                        className={`h-3 rounded-full transition-all ${goal.completed ? 'bg-green-500' : 'bg-indigo-500'}`}
-                        style={{ width: `${Math.min(progressPercent, 100)}%` }}
-                    ></div>
-                </div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Resource Type</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShareType('note')}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                    shareType === 'note'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Note
+                </button>
+                <button
+                  onClick={() => setShareType('flashcard')}
+                  className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
+                    shareType === 'flashcard'
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Flashcard Deck
+                </button>
+              </div>
             </div>
 
-            {!goal.completed && (
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => onUpdateProgress(goal._id, 1)}
-                        className="flex-1 bg-indigo-50 text-indigo-600 py-2 rounded-lg hover:bg-indigo-100 text-sm font-semibold"
-                    >
-                        +1
-                    </button>
-                    <button
-                        onClick={() => onUpdateProgress(goal._id, 5)}
-                        className="flex-1 bg-indigo-50 text-indigo-600 py-2 rounded-lg hover:bg-indigo-100 text-sm font-semibold"
-                    >
-                        +5
-                    </button>
-                    <button
-                        onClick={() => onUpdateProgress(goal._id, 10)}
-                        className="flex-1 bg-indigo-50 text-indigo-600 py-2 rounded-lg hover:bg-indigo-100 text-sm font-semibold"
-                    >
-                        +10
-                    </button>
-                </div>
-            )}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select {shareType === 'note' ? 'Note' : 'Flashcard Deck'}
+              </label>
+              {isLoading ? (
+                <p className="text-sm text-gray-500">Loading...</p>
+              ) : (
+                <select
+                  value={selectedResource}
+                  onChange={(e) => setSelectedResource(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Select a {shareType}</option>
+                  {shareType === 'note' 
+                    ? userNotes.map(note => (
+                      <option key={note._id} value={note._id}>
+                        {note.title || 'Untitled Note'}
+                      </option>
+                    ))
+                    : userFlashcards.map(deck => (
+                      <option key={deck._id} value={deck._id}>
+                        {deck.title} ({deck.cards?.length || 0} cards)
+                      </option>
+                    ))
+                  }
+                </select>
+              )}
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="flex-1 bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleShareResource}
+                className="flex-1 bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Share
+              </button>
+            </div>
+          </div>
         </div>
-    );
+      )}
+    </div>
+  );
 };
+
+// Resource Card Component
+const ResourceCard = ({ resource }: any) => {
+  const getResourceIcon = (type: string) => {
+    switch (type) {
+      case 'note':
+        return <BookOpen size={20} className="text-blue-600" />;
+      case 'flashcard':
+        return <Target size={20} className="text-purple-600" />;
+      default:
+        return <Share2 size={20} className="text-gray-600" />;
+    }
+  };
+
+  const getResourceLink = (resource: any) => {
+    switch (resource.resourceType) {
+      case 'note':
+        return `/notes`;
+      case 'flashcard':
+        return `/flashcards/${resource.resourceId}`;
+      default:
+        return '#';
+    }
+  };
+
+  return (
+    <div className="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="p-2 bg-gray-50 rounded-lg">
+          {getResourceIcon(resource.resourceType)}
+        </div>
+        <div className="flex-1">
+          <h3 className="font-semibold text-gray-900">{resource.title}</h3>
+          <p className="text-xs text-gray-500 capitalize">{resource.resourceType}</p>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <div className="text-xs text-gray-600">
+          <p>Shared by <span className="font-medium">{resource.sharedBy.name}</span></p>
+          <p>{new Date(resource.sharedAt).toLocaleDateString()}</p>
+        </div>
+        <Link
+          to={getResourceLink(resource)}
+          className="text-indigo-600 hover:text-indigo-800 text-sm font-semibold"
+        >
+          View →
+        </Link>
+      </div>
+    </div>
+  );
+};
+
+// Goals Tab Component
+const GoalsTab = ({ group, onGoalUpdated }: any) => {
+  const { user } = useAuth();
+  const [showAddGoal, setShowAddGoal] = useState(false);
+  const [newGoal, setNewGoal] = useState({
+    title: '',
+    description: '',
+    targetDate: '',
+    targetValue: 1,
+    type: 'tasks' as 'hours' | 'sessions' | 'tasks'
+  });
+
+  const handleAddGoal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await studyGroupsService.addGoal(group._id, {
+        title: newGoal.title,
+        description: newGoal.description,
+        targetValue: newGoal.targetValue,
+        type: newGoal.type,
+        deadline: newGoal.targetDate ? new Date(newGoal.targetDate) : undefined
+      });
+      setShowAddGoal(false);
+      setNewGoal({ title: '', description: '', targetDate: '', targetValue: 1, type: 'tasks' });
+      onGoalUpdated();
+    } catch (error) {
+      alert('Failed to add goal');
+    }
+  };
+
+  const handleUpdateProgress = async (goalId: string, increment: number) => {
+    try {
+      await studyGroupsService.updateGoalProgress(group._id, goalId, increment);
+      onGoalUpdated();
+    } catch (error) {
+      alert('Failed to update progress');
+    }
+  };
+
+  const handleDeleteGoal = async (goalId: string) => {
+    if (window.confirm('Are you sure you want to delete this goal?')) {
+      try {
+        await studyGroupsService.deleteGoal(group._id, goalId);
+        onGoalUpdated();
+      } catch (error) {
+        console.error('Delete goal error:', error);
+        alert('Failed to delete goal');
+      }
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Group Goals</h2>
+        <button
+          onClick={() => setShowAddGoal(true)}
+          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center gap-2"
+        >
+          <Plus size={16} />
+          Add Goal
+        </button>
+      </div>
+
+      {group.goals.length === 0 ? (
+        <div className="text-center py-12">
+          <Target size={48} className="text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">No goals set yet. Add your first study goal!</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {group.goals.map((goal: any) => {
+            const progress = (goal.currentValue / goal.targetValue) * 100;
+            const isCompleted = goal.currentValue >= goal.targetValue;
+            
+            return (
+              <div
+                key={goal._id}
+                className={`bg-white border p-4 rounded-lg transition-all ${
+                  isCompleted ? 'border-green-300 bg-green-50' : 'border-gray-200'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-gray-900">{goal.title}</h3>
+                      {isCompleted && <CheckCircle size={20} className="text-green-600" />}
+                    </div>
+                    <p className="text-sm text-gray-600 capitalize">{goal.type}</p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteGoal(goal._id)}
+                    className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded transition-colors"
+                    title="Delete Goal"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+
+                <div className="mb-3">
+                  <div className="flex justify-between text-sm mb-1">
+                    <span className="text-gray-600">Progress</span>
+                    <span className="font-semibold">{goal.currentValue} / {goal.targetValue}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        isCompleted ? 'bg-green-500' : 'bg-indigo-600'
+                      }`}
+                      style={{ width: `${Math.min(progress, 100)}%` }}
+                    />
+                  </div>
+                </div>
+
+                {!isCompleted && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleUpdateProgress(goal._id, 1)}
+                      className="flex-1 bg-indigo-100 text-indigo-700 py-2 px-4 rounded-lg hover:bg-indigo-200 font-semibold"
+                    >
+                      +1
+                    </button>
+                    <button
+                      onClick={() => handleUpdateProgress(goal._id, 5)}
+                      className="flex-1 bg-indigo-100 text-indigo-700 py-2 px-4 rounded-lg hover:bg-indigo-200 font-semibold"
+                    >
+                      +5
+                    </button>
+                    <button
+                      onClick={() => handleUpdateProgress(goal._id, 10)}
+                      className="flex-1 bg-indigo-100 text-indigo-700 py-2 px-4 rounded-lg hover:bg-indigo-200 font-semibold"
+                    >
+                      +10
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add Goal Modal */}
+      {showAddGoal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Add Study Goal</h2>
+            <form onSubmit={handleAddGoal}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                <input
+                  type="text"
+                  value={newGoal.title}
+                  onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+                <textarea
+                  value={newGoal.description}
+                  onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  rows={3}
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Goal Type</label>
+                <select
+                  value={newGoal.type}
+                  onChange={(e) => setNewGoal({ ...newGoal, type: e.target.value as 'hours' | 'sessions' | 'tasks' })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="tasks">Tasks</option>
+                  <option value="hours">Hours</option>
+                  <option value="sessions">Sessions</option>
+                </select>
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Target Value</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={newGoal.targetValue}
+                  onChange={(e) => setNewGoal({ ...newGoal, targetValue: parseInt(e.target.value) })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  required
+                />
+              </div>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAddGoal(false)}
+                  className="flex-1 bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Add Goal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Main Component
+const StudyGroupDetailPage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [group, setGroup] = useState<StudyGroup | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'resources' | 'chat'>('overview');
+
+  const loadGroup = useCallback(async () => {
+    try {
+      const data = await studyGroupsService.getGroupById(id!);
+      setGroup(data);
+    } catch (error) {
+      console.error('Failed to load study group:', error);
+      alert('Failed to load study group');
+      navigate('/study-groups');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, navigate]);
+
+  useEffect(() => {
+    loadGroup();
+  }, [loadGroup]);
+
+  const handleLeaveGroup = async () => {
+    if (window.confirm('Are you sure you want to leave this study group?')) {
+      try {
+        await studyGroupsService.leaveGroup(id!);
+        navigate('/study-groups');
+      } catch (error) {
+        alert('Failed to leave group');
+      }
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (window.confirm('Are you sure you want to delete this study group? This action cannot be undone.')) {
+      try {
+        await studyGroupsService.deleteGroup(id!);
+        navigate('/study-groups');
+      } catch (error) {
+        alert('Failed to delete group');
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading study group...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!group) {
+    return null;
+  }
+
+  const isCreator = user?._id === group.createdBy._id;
+  const isMember = group.members.some(m => m.userId._id === user?._id);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Back Button */}
+        <Link
+          to="/study-groups"
+          className="inline-flex items-center text-indigo-600 hover:text-indigo-800 mb-6 font-medium"
+        >
+          <ArrowLeft size={20} className="mr-2" />
+          Back to Groups
+        </Link>
+
+        {/* Header Card */}
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{group.name}</h1>
+              <p className="text-gray-600 mb-4">{group.description}</p>
+              <div className="flex items-center gap-4 text-sm">
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Users size={16} />
+                  {group.members.length} members
+                </span>
+                <span className="flex items-center gap-1 text-gray-600">
+                  <Target size={16} />
+                  {group.goals?.length || 0} goals
+                </span>
+              </div>
+            </div>
+
+            {group.groupCode && (
+              <div className="text-right">
+                <span className="text-xs text-gray-500">Group Code</span>
+                <p className="text-lg font-bold text-indigo-600">{group.groupCode}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Tabs Navigation */}
+        <div className="bg-white rounded-lg shadow-lg mb-6">
+          <div className="flex border-b">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === 'overview'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('goals')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === 'goals'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Goals
+            </button>
+            <button
+              onClick={() => setActiveTab('resources')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === 'resources'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Resources
+            </button>
+            <button
+              onClick={() => setActiveTab('chat')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === 'chat'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Chat
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="bg-white rounded-lg shadow-lg p-6">
+          {activeTab === 'overview' && (
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Members</h2>
+              <div className="space-y-3">
+                {group.members.map((member) => {
+                  const memberName = member.userId?.name || 'Unknown User';
+                  const memberEmail = member.userId?.email || '';
+                  const initials = memberName
+                    .split(' ')
+                    .map(n => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2);
+                  
+                  return (
+                    <div key={member.userId?._id} className="bg-gray-50 p-4 rounded-lg flex items-center gap-3">
+                      <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
+                        {initials}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900">{memberName}</h3>
+                        <p className="text-sm text-gray-600 capitalize">{member.role}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'goals' && (
+            <GoalsTab group={group} onGoalUpdated={loadGroup} />
+          )}
+
+          {activeTab === 'resources' && (
+            <ResourcesTab group={group} onResourceShared={loadGroup} />
+          )}
+
+          {activeTab === 'chat' && (
+            <ChatTab group={group} onMessageSent={loadGroup} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default StudyGroupDetailPage;
