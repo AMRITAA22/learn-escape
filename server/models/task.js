@@ -10,6 +10,10 @@ const TaskSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    dueDate: {  // ADD THIS
+        type: Date,
+        default: null,
+    },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,

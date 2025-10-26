@@ -13,13 +13,13 @@ const getTasks = async () => {
     return response.data;
 };
 
-const createTask = async (taskData: { title: string }) => {
+const createTask = async (taskData: { title: string; dueDate?: string | null }) => {  // UPDATE THIS
     const config = { headers: { Authorization: `Bearer ${getAuthToken()}` } };
     const response = await axios.post(API_URL, taskData, config);
     return response.data;
 };
 
-const updateTask = async (taskId: string, updateData: { completed: boolean }) => {
+const updateTask = async (taskId: string, updateData: { completed?: boolean; title?: string; dueDate?: string | null }) => {  // UPDATE THIS
     const config = { headers: { Authorization: `Bearer ${getAuthToken()}` } };
     const response = await axios.put(`${API_URL}/${taskId}`, updateData, config);
     return response.data;

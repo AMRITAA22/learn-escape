@@ -5,7 +5,8 @@ import { Plus, Trash2, FileText, Search, Clock, ChevronRight, Lock } from 'lucid
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import achievementsService from '../services/achievementsService';
-
+import { exportNoteToPDF } from '../utils/pdfExport';
+import { Download } from 'lucide-react';
 interface INote {
     _id: string;
     title: string;
@@ -188,7 +189,56 @@ export const NotesPage = () => {
                             <Plus size={20} className="text-gray-700" />
                         </button>
                     </div>
-                    
+                    {/* Editor Header */}
+<div className="px-16 py-4 border-b border-gray-200 bg-white">
+    <div className="flex items-center justify-between text-sm text-gray-500">
+        <div className="flex items-center gap-2">
+            {isSharedNote && <Lock size={16} className="text-blue-600" />}
+            <FileText size={16} />
+            <ChevronRight size={14} />
+            <span className="truncate max-w-md">{activeNote?.title || 'Untitled'}</span>
+            {isSharedNote && (
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                    Read-only
+                </span>
+            )}
+        </div>
+        <div className="flex items-center gap-3">
+            {/* ADD THIS EXPORT BUTTON */}
+            <button
+                onClick={() => exportNoteToPDF(activeNote!)}
+
+                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-medium"
+                title="Export as PDF"
+            >
+                <Download size={14} />
+                Export PDF
+            </button>
+            {/* END OF ADDITION */}
+            
+            {!isSharedNote && isSaving && (
+                <span className="text-xs text-gray-400 flex items-center gap-1">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-400"></div>
+                    Saving...
+                </span>
+            )}
+            {!isSharedNote && !isSaving && (
+                <span className="text-xs text-green-600">Saved</span>
+            )}
+            <span className="text-xs">
+  Last edited: {activeNote?.updatedAt
+    ? new Date(activeNote.updatedAt).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    : '—'}
+</span>
+
+        </div>
+    </div>
+</div>
                     {/* Search Bar */}
                     <div className="relative">
                         <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -387,5 +437,6 @@ export const NotesPage = () => {
                 )}
             </div>
         </div>
+        
     );
 };
