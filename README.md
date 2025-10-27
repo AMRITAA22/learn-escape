@@ -291,10 +291,7 @@ git push heroku main
 - [ ] File attachments in notes
 - [ ] Voice notes
 - [ ] Dark mode
-- [ ] Offline mode with sync
-- [ ] Integration with Google Drive/OneDrive
 - [ ] Spaced repetition algorithm for flashcards
-
 
 
 ## 👨‍💻 Authors
@@ -302,7 +299,3 @@ git push heroku main
 - **Amrita** - *Initial work* - [AMRITAA22](https://github.com/AMRITAA22)
 
 ---
-
-**Made with ❤️ by students, for students**
-
-⭐ Star this repo if you find it helpful!
