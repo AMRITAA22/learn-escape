@@ -363,6 +363,46 @@ exports.sendMessage = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+// @desc    Delete a shared resource
+// @route   DELETE /api/study-groups/:id/resources/:resourceId
+exports.deleteSharedResource = async (req, res) => {
+    try {
+        const group = await StudyGroup.findById(req.params.id);
+
+        if (!group) {
+            return res.status(404).json({ message: 'Group not found' });
+        }
+
+        // Check if user is a member
+        const isMember = group.members.some(m => m.userId.toString() === req.user.id);
+        if (!isMember) {
+            return res.status(403).json({ message: 'Not authorized' });
+        }
+
+        // Find the resource
+        const resource = group.sharedResources.id(req.params.resourceId);
+        if (!resource) {
+            return res.status(404).json({ message: 'Resource not found' });
+        }
+
+        // Check if user is the one who shared it or is admin
+        const isResourceOwner = resource.sharedBy.toString() === req.user.id;
+        const isAdmin = group.createdBy.toString() === req.user.id;
+
+        if (!isResourceOwner && !isAdmin) {
+            return res.status(403).json({ message: 'Only the resource owner or group admin can delete this resource' });
+        }
+
+        // Remove the resource
+        group.sharedResources.pull({ _id: req.params.resourceId });
+        await group.save();
+
+        res.status(200).json({ message: 'Resource deleted successfully', group });
+    } catch (error) {
+        console.error('Error deleting resource:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
 
 // @desc    Remove member (admin only)
 // @route   DELETE /api/study-groups/:id/members/:memberId

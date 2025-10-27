@@ -167,6 +167,17 @@ const deleteGoal = async (groupId: string, goalId: string) => {
     }
 };
 
+// Add this method
+const deleteSharedResource = async (groupId: string, resourceId: string) => {
+    try {
+        const response = await axios.delete(`${API_URL}/${groupId}/resources/${resourceId}`, getConfig());
+        return response.data;
+    } catch (error) {
+        console.error("Failed to delete resource", error);
+        throw error;
+    }
+};
+
 const studyGroupsService = {
     getUserGroups,
     getGroupById,
@@ -179,6 +190,7 @@ const studyGroupsService = {
     updateGoalProgress,
     shareResource,
     getSharedResources,
+    deleteSharedResource,
     sendMessage,
     removeMember,
 };

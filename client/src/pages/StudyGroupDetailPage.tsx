@@ -148,6 +148,7 @@ const ChatTab = ({ group, onMessageSent }: any) => {
 
 // Resources Tab Component
 const ResourcesTab = ({ group, onResourceShared }: any) => {
+  const { user } = useAuth();
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareType, setShareType] = useState<'note' | 'flashcard'>('note');
   const [userNotes, setUserNotes] = useState<any[]>([]);
@@ -204,7 +205,14 @@ const ResourcesTab = ({ group, onResourceShared }: any) => {
       alert('Failed to share resource');
     }
   };
-
+const handleDeleteResource = async (resourceId: string) => {
+    try {
+      await studyGroupsService.deleteSharedResource(group._id, resourceId);
+      onResourceShared(); // Reload the group data
+    } catch (error) {
+      throw error;
+    }
+  };
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -226,7 +234,14 @@ const ResourcesTab = ({ group, onResourceShared }: any) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {group.sharedResources.map((resource: any) => (
-            <ResourceCard key={resource._id} resource={resource} />
+            <ResourceCard 
+              key={resource._id} 
+              resource={resource}
+              groupId={group._id}
+              currentUserId={user?._id}
+              isAdmin={user?._id === group.createdBy._id}
+              onDelete={handleDeleteResource}
+            />
           ))}
         </div>
       )}
@@ -314,7 +329,10 @@ const ResourcesTab = ({ group, onResourceShared }: any) => {
 };
 
 // Resource Card Component
-const ResourceCard = ({ resource }: any) => {
+// Resource Card Component
+const ResourceCard = ({ resource, groupId, currentUserId, isAdmin, onDelete }: any) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const getResourceIcon = (type: string) => {
     switch (type) {
       case 'note':
@@ -337,8 +355,28 @@ const ResourceCard = ({ resource }: any) => {
     }
   };
 
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (window.confirm('Are you sure you want to delete this shared resource?')) {
+      setIsDeleting(true);
+      try {
+        await onDelete(resource._id);
+      } catch (error) {
+        console.error('Failed to delete resource:', error);
+        alert('Failed to delete resource');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
+  // Check if current user can delete (owner or admin)
+  const canDelete = currentUserId === resource.sharedBy._id || isAdmin;
+
   return (
-    <div className="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow">
+    <div className="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow group">
       <div className="flex items-start gap-3 mb-3">
         <div className="p-2 bg-gray-50 rounded-lg">
           {getResourceIcon(resource.resourceType)}
@@ -347,6 +385,16 @@ const ResourceCard = ({ resource }: any) => {
           <h3 className="font-semibold text-gray-900">{resource.title}</h3>
           <p className="text-xs text-gray-500 capitalize">{resource.resourceType}</p>
         </div>
+        {canDelete && (
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="opacity-0 group-hover:opacity-100 p-2 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+            title="Delete resource"
+          >
+            <Trash2 size={16} className="text-red-500" />
+          </button>
+        )}
       </div>
       
       <div className="flex items-center justify-between">
@@ -363,7 +411,7 @@ const ResourceCard = ({ resource }: any) => {
       </div>
     </div>
   );
-};
+};  
 
 // Goals Tab Component
 const GoalsTab = ({ group, onGoalUpdated }: any) => {

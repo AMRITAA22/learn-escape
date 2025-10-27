@@ -12,6 +12,7 @@ const {
     deleteGoal,  // ADD THIS LINE
     shareResource,
     getSharedResources,
+    deleteSharedResource,
     sendMessage,
     removeMember,
 } = require('../controllers/studyGroupsController');
@@ -47,6 +48,7 @@ router.delete('/:id/goals/:goalId', deleteGoal);  // MOVE THIS BEFORE module.exp
 router.route('/:id/resources')
     .get(getSharedResources)
     .post(shareResource);
+router.delete('/:id/resources/:resourceId', deleteSharedResource);
 
 // Group chat
 router.post('/:id/chat', sendMessage);
