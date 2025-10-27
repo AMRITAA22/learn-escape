@@ -16,7 +16,7 @@ import { DeckPage } from './pages/DeckPage';
 import { PomodoroPage } from './pages/PomodoroPage';
 import { AIAssistantPage } from './pages/AIAssistantPage';
 import { NotesPage } from './pages/NotesPage';
-import { LandingPage } from './pages/LandingPage';
+import LandingPage from "./pages/LandingPage";
 import { AchievementsPage } from './pages/AchievementsPage';
 import { StudyGroupsListPage } from './pages/StudyGroupsListPage';
 import StudyGroupDetailPage from './pages/StudyGroupDetailPage';
