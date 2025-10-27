@@ -4,6 +4,7 @@ import studyGroupsService from '../services/studyGroupsService';
 import { useAuth } from '../context/AuthContext';
 import { Users, Target, Share2, ArrowLeft, Plus, Trash2, LogOut, CheckCircle, BookOpen, MessageCircle, Send } from 'lucide-react';
 
+
 interface Member {
   userId: {
     _id: string;
@@ -58,6 +59,7 @@ interface StudyGroup {
 }
 
 // Chat Tab Component
+// Chat Tab Component with Improved UI
 const ChatTab = ({ group, onMessageSent }: any) => {
   const { user } = useAuth();
   const [newMessage, setNewMessage] = useState('');
@@ -84,38 +86,126 @@ const ChatTab = ({ group, onMessageSent }: any) => {
     }
   };
 
+  const formatMessageTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } else if (diffInHours < 48) {
+      return 'Yesterday ' + date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      });
+    } else {
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
-    <div className="flex flex-col h-[600px]">
-      <h2 className="text-2xl font-bold text-gray-900 mb-4">Group Chat</h2>
+    <div className="flex flex-col h-[calc(100vh-350px)] min-h-[500px]">
+      {/* Chat Header */}
+      <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Group Chat</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            {group.members.length} members • {group.chat?.length || 0} messages
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-sm text-gray-600">Online</span>
+        </div>
+      </div>
       
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 rounded-lg p-4 mb-4 space-y-4">
+      <div className="flex-1 overflow-y-auto mb-4 space-y-4 pr-2">
         {(!group.chat || group.chat.length === 0) ? (
-          <div className="text-center py-12">
-            <MessageCircle size={48} className="text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No messages yet. Start the conversation!</p>
+          <div className="flex flex-col items-center justify-center h-full text-center py-12">
+            <div className="bg-indigo-100 p-6 rounded-full mb-4">
+              <MessageCircle size={48} className="text-indigo-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Start the conversation!
+            </h3>
+            <p className="text-gray-500 max-w-sm">
+              Share ideas, ask questions, and collaborate with your study group members.
+            </p>
           </div>
         ) : (
           <>
-            {group.chat.map((msg: any) => {
+            {group.chat.map((msg: any, index: number) => {
               const isOwnMessage = msg.userId._id === user?._id;
+              const showAvatar = index === 0 || group.chat[index - 1].userId._id !== msg.userId._id;
+              const initials = getInitials(msg.userId.name);
+
               return (
-                <div key={msg._id}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {isOwnMessage ? 'You' : msg.userId.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(msg.createdAt).toLocaleString('en-US', { 
-                        month: 'numeric',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </p>
+                <div
+                  key={msg._id}
+                  className={`flex gap-3 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} ${
+                    !showAvatar && 'ml-12'
+                  }`}
+                >
+                  {/* Avatar */}
+                  {showAvatar ? (
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 ${
+                        isOwnMessage ? 'bg-indigo-600' : 'bg-gradient-to-br from-purple-500 to-pink-500'
+                      }`}
+                    >
+                      {initials}
+                    </div>
+                  ) : (
+                    <div className="w-10 flex-shrink-0" />
+                  )}
+
+                  {/* Message Content */}
+                  <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[70%]`}>
+                    {showAvatar && (
+                      <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
+                        <span className="text-sm font-semibold text-gray-900">
+                          {isOwnMessage ? 'You' : msg.userId.name}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {formatMessageTime(msg.createdAt)}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div
+                      className={`px-4 py-2.5 rounded-2xl shadow-sm ${
+                        isOwnMessage
+                          ? 'bg-indigo-600 text-white rounded-tr-sm'
+                          : 'bg-gray-100 text-gray-900 rounded-tl-sm'
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed break-words">{msg.message}</p>
+                    </div>
+
+                    {!showAvatar && (
+                      <span className="text-xs text-gray-400 mt-1 px-2">
+                        {formatMessageTime(msg.createdAt)}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-700 ml-0">{msg.message}</p>
                 </div>
               );
             })}
@@ -125,22 +215,36 @@ const ChatTab = ({ group, onMessageSent }: any) => {
       </div>
 
       {/* Message Input */}
-      <form onSubmit={handleSendMessage} className="flex gap-2">
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message..."
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          disabled={sending}
-        />
-        <button
-          type="submit"
-          disabled={sending || !newMessage.trim()}
-          className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-semibold"
-        >
-          Send
-        </button>
+      <form onSubmit={handleSendMessage} className="relative">
+        <div className="flex gap-3 p-4 bg-gray-50 rounded-2xl border-2 border-gray-200 focus-within:border-indigo-500 transition-colors">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type your message..."
+            className="flex-1 bg-transparent border-none focus:outline-none text-gray-900 placeholder-gray-500"
+            disabled={sending}
+          />
+          <button
+            type="submit"
+            disabled={sending || !newMessage.trim()}
+            className="bg-indigo-600 text-white p-3 rounded-xl hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl disabled:shadow-none flex items-center justify-center"
+            title="Send message"
+          >
+            {sending ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+            ) : (
+              <Send size={20} />
+            )}
+          </button>
+        </div>
+        
+        {/* Character count */}
+        {newMessage.length > 0 && (
+          <div className="absolute -top-6 right-0 text-xs text-gray-400">
+            {newMessage.length} / 500
+          </div>
+        )}
       </form>
     </div>
   );
