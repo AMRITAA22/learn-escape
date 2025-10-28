@@ -4,6 +4,7 @@ const { Server } = require("socket.io");
 const cors = require('cors');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const voiceRoutes = require('./routes/voice');
 
 dotenv.config();
 connectDB();
@@ -75,6 +76,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/pomodoro', require('./routes/pomodoro'));
 app.use('/api/notes', require('./routes/notes'));
 app.use('/api/achievements', require('./routes/achievements'));
+app.use('/api/voice', voiceRoutes);
 // app.use('/api/goals', require('./routes/goals'));           // NEW
 // app.use('/api/achievements', require('./routes/achievements'));
 app.use('/api/study-groups', require('./routes/studyGroups'));
@@ -90,4 +92,5 @@ async function connectDB() {
     process.exit(1);
   }
 }
+
 
