@@ -10,7 +10,7 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Layout from './components/layout/Layout';
-import { TasksPage } from './pages/TasksPage';
+import TasksPage from './pages/TasksPage';
 import { FlashcardsPage } from './pages/FlashcardsPage'; 
 import { DeckPage } from './pages/DeckPage';
 import { PomodoroPage } from './pages/PomodoroPage';
@@ -20,6 +20,8 @@ import LandingPage from "./pages/LandingPage";
 import { AchievementsPage } from './pages/AchievementsPage';
 import { StudyGroupsListPage } from './pages/StudyGroupsListPage';
 import StudyGroupDetailPage from './pages/StudyGroupDetailPage';
+import { PlannerPage } from "./pages/PlannerPage";
+import { NptelPage } from './pages/NptelPage';
 function App() {
   return (
     <Router>
@@ -41,7 +43,7 @@ function App() {
                   <Route path="/study-rooms" element={<StudyRoomsPage />} /> {/* Add this route */}
                   <Route path="/room/:roomId" element={<RoomPage />} /> 
                   <Route path="/" element={<DashboardPage />} />
-                  <Route path="/tasks" element={<TasksPage />} />
+                  <Route path="/tasks" element={<TasksPage />} />  
                   <Route path="/flashcards" element={<FlashcardsPage />} /> 
                   <Route path="/flashcards/:id" element={<DeckPage />} />
                   <Route path="/pomodoro" element={<PomodoroPage />} />
@@ -50,6 +52,8 @@ function App() {
                   <Route path="/study-groups" element={<StudyGroupsListPage />} />
                   <Route path="/study-groups/:id" element={<StudyGroupDetailPage />} />
                   <Route path="/achievements" element={<AchievementsPage />} />
+                  <Route path="/planner" element={<PlannerPage />} />
+                  <Route path="/nptel" element={<NptelPage />} />
                 </Routes>
               </Layout>
             </ProtectedRoute>

@@ -244,6 +244,16 @@ export default function LandingPage() {
                     </div>
                 </div>
             </section>
+            <section className="py-20 bg-gradient-to-br from-blue-50 to-purple-100 text-center rounded-3xl mt-16">
+                <h2 className="text-4xl font-bold text-indigo-700 mb-4">
+                    🌈 Mood-Based Learning
+                </h2>
+                <p className="max-w-2xl mx-auto text-lg text-gray-700">
+                    LearnEscape adapts to how you feel — whether you are tired, relaxed, or focused, 
+                    your study plan and environment adjust to keep you productive and balanced.
+                </p>
+            </section>
+
 
             {/* Footer */}
             <footer className="bg-gradient-to-r from-gray-900 to-indigo-900 text-white py-12 relative overflow-hidden">

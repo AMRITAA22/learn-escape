@@ -4,8 +4,9 @@ import dashboardService from '../services/dashboardService';
 import pomodoroService from '../services/pomodoroService';
 import achievementsService from '../services/achievementsService';
 import { Link } from 'react-router-dom';
-import { Clock, CheckCircle, Zap, Award, BookOpen, Plus, Timer, Users,  Target, Star } from 'lucide-react';
-import {  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, } from 'recharts';
+import { Clock, CheckCircle, Zap, Award, BookOpen, Plus, Timer, Users, Target, Star } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { MoodSelector } from "../components/dashboard/MoodSelector";
 
 // Helper function to convert minutes to hours and minutes format
 const formatMinutesToHours = (totalMinutes: number) => {
@@ -24,15 +25,6 @@ const generateWeeklyData = () => {
     }));
 };
 
-// const generateSubjectData = () => {
-//     return [
-//         { subject: 'Mathematics', hours: 8, color: '#3b82f6' },
-//         { subject: 'Science', hours: 6, color: '#10b981' },
-//         { subject: 'Languages', hours: 5, color: '#f59e0b' },
-//         { subject: 'History', hours: 3, color: '#ef4444' },
-//     ];
-// };
-
 export const DashboardPage = () => {
     const { user } = useAuth();
     const [dashboardData, setDashboardData] = useState<any>(null);
@@ -41,7 +33,6 @@ export const DashboardPage = () => {
     const [achievementStats, setAchievementStats] = useState<any>(null);
     const [recentAchievements, setRecentAchievements] = useState<any[]>([]);
     const [weeklyData] = useState(generateWeeklyData());
-    // const [subjectData] = useState(generateSubjectData());
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -53,21 +44,21 @@ export const DashboardPage = () => {
                 achievementsService.getAchievementStats(),
                 achievementsService.getAchievements(),
             ])
-            .then(([data, stats, pomodoroData, achStats, allAchievements]) => {
-                setDashboardData(data);
-                setTaskStats(stats);
-                setPomodoroStats(pomodoroData);
-                setAchievementStats(achStats);
-                
-                // Get recently unlocked achievements (last 3)
-                const unlocked = allAchievements
-                    .filter((a: any) => a.isUnlocked)
-                    .sort((a: any, b: any) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime())
-                    .slice(0, 3);
-                setRecentAchievements(unlocked);
-            })
-            .catch(err => console.error("Failed to load dashboard data", err))
-            .finally(() => setIsLoading(false));
+                .then(([data, stats, pomodoroData, achStats, allAchievements]) => {
+                    setDashboardData(data);
+                    setTaskStats(stats);
+                    setPomodoroStats(pomodoroData);
+                    setAchievementStats(achStats);
+
+                    // Get recently unlocked achievements (last 3)
+                    const unlocked = allAchievements
+                        .filter((a: any) => a.isUnlocked)
+                        .sort((a: any, b: any) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime())
+                        .slice(0, 3);
+                    setRecentAchievements(unlocked);
+                })
+                .catch(err => console.error("Failed to load dashboard data", err))
+                .finally(() => setIsLoading(false));
         }
     }, [user]);
 
@@ -84,47 +75,53 @@ export const DashboardPage = () => {
     const studyHoursDisplay = formatMinutesToHours(pomodoroStats.totalMinutesStudied);
     const studyHoursValue = `${studyHoursDisplay.hours}h ${studyHoursDisplay.minutes}m`;
     const tasksCompletionPercent = taskStats.total > 0 ? (taskStats.completed / taskStats.total) * 100 : 0;
-    // const weeklyTotal = weeklyData.reduce((sum, day) => sum + day.hours, 0);
 
     return (
         <div className="p-8 bg-gray-50 min-h-screen">
             {/* Welcome Section */}
             <div className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome back, {user?.name}! 👋</h1>
-                <p className="text-gray-600">Here's your learning progress at a glance</p>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                    Welcome back, {user?.name}! 👋
+                </h1>
+                <p className="text-gray-600">
+                    Here's your learning progress at a glance
+                </p>
             </div>
+
+            {/* 🌈 Mood-Based Learning Feature */}
+            <MoodSelector />
 
             {/* Main Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <StatCard 
-                    icon={<Clock size={24} />} 
-                    title="Study Hours" 
-                    value={studyHoursValue} 
-                    isText={true} 
+                <StatCard
+                    icon={<Clock size={24} />}
+                    title="Study Hours"
+                    value={studyHoursValue}
+                    isText={true}
                     color="blue"
                     trend="+12% this week"
                 />
-                <StatCard 
-                    icon={<CheckCircle size={24} />} 
-                    title="Tasks Completed" 
-                    value={tasksValue} 
-                    isText={true} 
+                <StatCard
+                    icon={<CheckCircle size={24} />}
+                    title="Tasks Completed"
+                    value={tasksValue}
+                    isText={true}
                     color="green"
                     trend={`${Math.round(tasksCompletionPercent)}% done`}
                 />
-                <StatCard 
-                    icon={<Zap size={24} />} 
-                    title="Sessions Done" 
-                    value={pomodoroStats.sessionsCompleted} 
-                    unit="sessions" 
+                <StatCard
+                    icon={<Zap size={24} />}
+                    title="Sessions Done"
+                    value={pomodoroStats.sessionsCompleted}
+                    unit="sessions"
                     color="yellow"
                     trend="+5 this week"
                 />
-                <StatCard 
-                    icon={<Award size={24} />} 
-                    title="Achievements" 
-                    value={achievementStats ? `${achievementStats.unlockedCount}/${achievementStats.totalAchievements}` : '0/8'} 
-                    isText={true} 
+                <StatCard
+                    icon={<Award size={24} />}
+                    title="Achievements"
+                    value={achievementStats ? `${achievementStats.unlockedCount}/${achievementStats.totalAchievements}` : '0/8'}
+                    isText={true}
                     color="red"
                     trend={achievementStats ? `${achievementStats.completionPercentage}%` : '0%'}
                 />
@@ -158,51 +155,6 @@ export const DashboardPage = () => {
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                {/* Weekly Study Trend */}
-                {/* <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-gray-800">Weekly Study Trend</h2>
-                        <TrendingUp size={20} className="text-green-500" />
-                    </div>
-                    <ResponsiveContainer width="100%" height={250}>
-                        <LineChart data={weeklyData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="day" />
-                            <YAxis />
-                            <Tooltip />
-                            <Line type="monotone" dataKey="hours" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 5 }} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                    <p className="text-sm text-gray-500 mt-4">Total hours this week: <span className="font-bold text-gray-800">{weeklyTotal}h</span></p>
-                </div> */}
-
-                {/* Study by Subject */}
-                {/* <div className="bg-white p-6 rounded-lg shadow-md">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-bold text-gray-800">Study by Subject</h2>
-                        <BookOpen size={20} className="text-indigo-600" />
-                    </div>
-                    <ResponsiveContainer width="100%" height={250}>
-                        <PieChart>
-                            <Pie
-                                data={subjectData}
-                                cx="50%"
-                                cy="50%"
-                                labelLine={false}
-                                label={({ subject, hours }) => `${subject}: ${hours}h`}
-                                outerRadius={80}
-                                fill="#8884d8"
-                                dataKey="hours"
-                            >
-                                {subjectData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </div> */}
-
                 {/* Daily Tasks Breakdown */}
                 <div className="bg-white p-6 rounded-lg shadow-md">
                     <h2 className="text-xl font-bold text-gray-800 mb-6">Tasks This Week</h2>
@@ -224,47 +176,45 @@ export const DashboardPage = () => {
                         <Target size={20} className="text-purple-600" />
                     </div>
                     {achievementStats ? (
-                        <div className="space-y-6">
-                            <div className="text-center">
-                                <div className="relative w-40 h-40 mx-auto mb-4">
-                                    <svg className="w-full h-full" viewBox="0 0 100 100">
-                                        <circle
-                                            className="text-gray-200 stroke-current"
-                                            strokeWidth="10"
-                                            cx="50"
-                                            cy="50"
-                                            r="40"
-                                            fill="transparent"
-                                        ></circle>
-                                        <circle
-                                            className="text-purple-600 progress-ring stroke-current"
-                                            strokeWidth="10"
-                                            strokeLinecap="round"
-                                            cx="50"
-                                            cy="50"
-                                            r="40"
-                                            fill="transparent"
-                                            strokeDasharray={`${achievementStats.completionPercentage * 2.51} 251`}
-                                            transform="rotate(-90 50 50)"
-                                        ></circle>
-                                        <text x="50" y="50" className="text-2xl font-bold" textAnchor="middle" dy=".3em" fill="currentColor">
-                                            {achievementStats.completionPercentage}%
-                                        </text>
-                                    </svg>
-                                </div>
-                                <p className="text-lg font-bold text-gray-900 mb-2">
-                                    {achievementStats.unlockedCount} of {achievementStats.totalAchievements} Unlocked
-                                </p>
-                                <p className="text-sm text-gray-600 mb-4">
-                                    {achievementStats.lockedCount} more to go!
-                                </p>
-                                <Link 
-                                    to="/achievements" 
-                                    className="inline-block bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold"
-                                >
-                                    View Achievements
-                                </Link>
+                        <div className="space-y-6 text-center">
+                            <div className="relative w-40 h-40 mx-auto mb-4">
+                                <svg className="w-full h-full" viewBox="0 0 100 100">
+                                    <circle
+                                        className="text-gray-200 stroke-current"
+                                        strokeWidth="10"
+                                        cx="50"
+                                        cy="50"
+                                        r="40"
+                                        fill="transparent"
+                                    ></circle>
+                                    <circle
+                                        className="text-purple-600 progress-ring stroke-current"
+                                        strokeWidth="10"
+                                        strokeLinecap="round"
+                                        cx="50"
+                                        cy="50"
+                                        r="40"
+                                        fill="transparent"
+                                        strokeDasharray={`${achievementStats.completionPercentage * 2.51} 251`}
+                                        transform="rotate(-90 50 50)"
+                                    ></circle>
+                                    <text x="50" y="50" className="text-2xl font-bold" textAnchor="middle" dy=".3em" fill="currentColor">
+                                        {achievementStats.completionPercentage}%
+                                    </text>
+                                </svg>
                             </div>
+                            <p className="text-lg font-bold text-gray-900 mb-2">
+                                {achievementStats.unlockedCount} of {achievementStats.totalAchievements} Unlocked
+                            </p>
+                            <p className="text-sm text-gray-600 mb-4">
+                                {achievementStats.lockedCount} more to go!
+                            </p>
+                            <Link
+                                to="/achievements"
+                                className="inline-block bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold"
+                            >
+                                View Achievements
+                            </Link>
                         </div>
                     ) : (
                         <p className="text-gray-500 text-center">Loading achievement data...</p>
@@ -314,7 +264,9 @@ const StatCard = ({ icon, title, value, unit, color, isText = false, trend }: an
             {isText ? (
                 <p className="text-3xl font-bold text-gray-900">{value}</p>
             ) : (
-                <p className="text-3xl font-bold text-gray-900">{value} <span className="text-sm font-medium text-gray-600">{unit}</span></p>
+                <p className="text-3xl font-bold text-gray-900">
+                    {value} <span className="text-sm font-medium text-gray-600">{unit}</span>
+                </p>
             )}
         </div>
     );
@@ -322,10 +274,14 @@ const StatCard = ({ icon, title, value, unit, color, isText = false, trend }: an
 
 // Action Card Component
 const ActionCard = ({ icon, title, to }: any) => (
-    <Link to={to} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-all hover:scale-105 flex flex-col items-center justify-center text-center border border-gray-100">
+    <Link
+        to={to}
+        className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-all hover:scale-105 flex flex-col items-center justify-center text-center border border-gray-100"
+    >
         <div className="bg-gray-100 p-4 rounded-full mb-3">
             {React.cloneElement(icon, { size: 28, className: "text-gray-700" })}
         </div>
         <p className="font-semibold text-gray-800">{title}</p>
     </Link>
 );
+

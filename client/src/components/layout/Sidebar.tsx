@@ -1,5 +1,5 @@
 import React from 'react';
-import { Timer, Trophy, Users } from 'lucide-react';
+import { Timer, Trophy, Users, BookMarked } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { 
     LayoutDashboard, 
@@ -8,7 +8,8 @@ import {
     CheckSquare,  
     Sparkles, 
     LogOut,
-    Layers // Icon for Flashcards
+    Layers,
+    CalendarClock // ✅ Icon for Planner
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -23,7 +24,10 @@ const Sidebar = () => {
         { name: 'Flashcards', path: '/flashcards', icon: Layers },
         { name: 'Tasks', path: '/tasks', icon: CheckSquare },
         { name: 'Pomodoro', path: '/pomodoro', icon: Timer },
+        // ✅ Added Smart Study Planner link here
+        { name: 'Planner', path: '/planner', icon: CalendarClock },
         { name: 'AI Assistant', path: '/ai-assistant', icon: Sparkles },
+        { name: 'NPTEL', path: '/nptel', icon: BookMarked },
         { name: 'Study Groups', path: '/study-groups', icon: Users },
         { name: 'Achievements', path: '/achievements', icon: Trophy },
     ];
