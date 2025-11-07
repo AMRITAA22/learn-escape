@@ -37,20 +37,19 @@ const getLeaderboard = async (quizId: string) => {
     return response.data;
 };
 
-// --- THIS IS THE NEW FUNCTION ---
+// --- THIS IS THE FUNCTION YOUR PAGE IS USING ---
 // GET /api/quizzes/results/:resultId
 const getQuizResult = async (resultId: string) => {
     const response = await axios.get(`${API_URL}/quizzes/results/${resultId}`, getConfig());
     return response.data;
 };
-// --- END OF NEW FUNCTION ---
 
 const quizService = {
     getQuizzesForGroup,
     getQuiz,
     submitQuiz,
     getLeaderboard,
-    getQuizResult // <-- ADDED IT TO THE EXPORT
+    getQuizResult // <-- Ensure it is exported
 };
 
 export default quizService;

@@ -300,6 +300,10 @@ exports.getConversationById = async (req, res) => {
         res.status(500).json({ message: "Failed to fetch conversation." });
     }
 };
+// server/controllers/aiController.js
+
+// @desc    Generate and save a quiz from a topic
+// @route   POST /api/ai/generate-quiz-topic
 exports.generateQuizByTopic = async (req, res) => {
     const userId = req.user.id;
     const { topic, numberOfQuestions, title, studyGroupId } = req.body;
@@ -312,16 +316,20 @@ exports.generateQuizByTopic = async (req, res) => {
     const quizTitle = title || `AI Quiz: ${topic}`;
 
     try {
+        // --- THIS IS THE UPDATED PROMPT ---
         const fullPrompt = `Generate a ${qCount}-question multiple-choice quiz about: ${topic}.
 Format your response as a JSON array with this exact structure:
 [
   {
-    "questionText": "...",
-    "options": ["A", "B", "C", "D"],
-    "correctAnswer": "C"
+    "questionText": "What is the capital of France?",
+    "options": ["London", "Berlin", "Paris", "Madrid"],
+    "correctAnswer": "Paris"
   }
 ]
-Return ONLY the JSON array, no additional text.`; // <-- CORRECTED: Semicolon is OUTSIDE
+The 'options' array should contain 4 plain text answers, WITHOUT prefixes like "A)", "B)", etc.
+The 'correctAnswer' field MUST be an exact string match to one of the values in the 'options' array.
+Return ONLY the JSON array, no additional text.`;
+        // --- END OF UPDATED PROMPT ---
 
         const result = await model.generateContent(fullPrompt);
         const response = await result.response;

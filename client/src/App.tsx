@@ -23,9 +23,9 @@ import StudyGroupDetailPage from './pages/StudyGroupDetailPage';
 import { PlannerPage } from "./pages/PlannerPage";
 import { NptelPage } from './pages/NptelPage';
 
-// 1. IMPORT THE NEW QUIZ PAGES
-import QuizPlayPage from './pages/QuizPlayPage';     
-import { QuizResultPage } from './pages/QuizResultPage'; // Fix 2: Corrected path (./)
+// Import the new quiz pages (with correct casing)
+import QuizPlayPage from './pages/QuizPlayPage';
+import { QuizResultPage } from './pages/QuizResultPage';
 
 function App() {
   return (
@@ -38,16 +38,18 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} /> 
         <Route path="/reset-password/:token" element={<ResetPasswordPage />}/>
 
-        {/* 2. ADD PUBLIC QUIZ ROUTES (They are protected inside ProtectedRoute) */}
+        {/* --- THIS IS THE UPDATED PART --- */}
         {/* We put them here so they don't use the main Layout (no sidebar) */}
         <Route 
           path="/quiz/play/:id" 
           element={<ProtectedRoute><QuizPlayPage /></ProtectedRoute>} 
         />
+        {/* The 'id' here is now the QUIZ ID */}
         <Route 
           path="/quiz/result/:id" 
           element={<ProtectedRoute><QuizResultPage /></ProtectedRoute>} 
         />
+        {/* --- END OF UPDATE --- */}
 
         {/* Protected routes with Layout */}
         <Route 

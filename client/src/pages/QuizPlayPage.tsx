@@ -20,7 +20,7 @@ interface Answer {
 }
 
 export const QuizPlayPage = () => {
-    const { id } = useParams<{ id: string }>();
+    const { id } = useParams<{ id: string }>(); // This 'id' is the quizId
     const navigate = useNavigate();
     
     const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -83,8 +83,13 @@ export const QuizPlayPage = () => {
         setIsLoading(true); // Show loader during submission
         try {
             const result = await quizService.submitQuiz(id, finalAnswers);
-            // Redirect to the new result page, passing the new result ID
-            navigate(`/quiz/result/${result._id}`);
+            
+            // --- THIS IS THE FIX ---
+            // Navigate to the result page using the QUIZ ID (from useParams, which is 'id')
+            // and pass the new result data in the state.
+            navigate(`/quiz/result/${id}`, { state: { userResult: result } });
+            // --- END OF FIX ---
+
         } catch (err: any) {
             console.error("Failed to submit quiz:", err);
             setError(err.response?.data?.message || 'Failed to submit quiz. You may have already taken it.');
@@ -113,13 +118,12 @@ export const QuizPlayPage = () => {
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-2xl">
-                {/* Header and Progress */}
+                {/* ... (rest of the JSX is identical to before) ... */}
                 <div className="mb-8">
                     <h1 className="text-2xl font-bold text-gray-800 mb-2">{quiz.title}</h1>
                     <p className="text-sm text-gray-500">
                         Question {currentQuestionIndex + 1} of {quiz.questions.length}
                     </p>
-                    {/* Progress Bar */}
                     <div className="w-full bg-gray-200 rounded-full h-2.5 mt-4">
                         <div 
                             className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" 
@@ -127,15 +131,11 @@ export const QuizPlayPage = () => {
                         ></div>
                     </div>
                 </div>
-
-                {/* Question */}
                 <div className="mb-6">
                     <h2 className="text-xl font-semibold text-gray-900 leading-relaxed">
                         {currentQuestion.questionText}
                     </h2>
                 </div>
-
-                {/* Options */}
                 <div className="space-y-3">
                     {currentQuestion.options.map((option, index) => (
                         <button
@@ -152,8 +152,6 @@ export const QuizPlayPage = () => {
                         </button>
                     ))}
                 </div>
-
-                {/* Next Button */}
                 <div className="mt-8 text-right">
                     <button
                         onClick={handleNextQuestion}
@@ -175,4 +173,6 @@ export const QuizPlayPage = () => {
             </div>
         </div>
     );
-};export default QuizPlayPage;
+};
+
+export default QuizPlayPage;
