@@ -61,6 +61,16 @@ const generateAndSaveDeck = async (data: {
     const response = await axios.post(`${API_URL}/generate-deck`, data, config);
     return response.data;
 };
+const generateQuizByTopic = async (data: {
+    topic: string;
+    numberOfQuestions?: number;
+    title?: string;
+    studyGroupId?: string;
+}) => {
+    const config = { headers: { 'Authorization': `Bearer ${getAuthToken()}` } };
+    const response = await axios.post(`${API_URL}/generate-quiz-topic`, data, config);
+    return response.data;
+};
 
 const aiService = {
     uploadNotes,
@@ -69,6 +79,7 @@ const aiService = {
     getConversationById,
     generateFlashcards,
     generateAndSaveDeck,
+    generateQuizByTopic
 };
 
 export default aiService;

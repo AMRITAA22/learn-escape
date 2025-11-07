@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import aiService from '../services/aiService';
-import { Send, Paperclip, Menu, Sparkles, FileText } from 'lucide-react';
+// 1. REMOVED 'useNavigate' from this line
+import { Send, Paperclip, Menu, Sparkles, FileText, Brain } from 'lucide-react';
 import { ChatSidebar } from '../components/chat/ChatSidebar';
 import { ChatMessage } from '../components/chat/ChatMessage';
 import { AIFlashcardModal } from '../components/flashcards/AIFlashcardModal';
-import { useNavigate } from 'react-router-dom';
+// 2. REMOVED 'useNavigate' from this line
+// TODO: Create and import this component
+import { AIGenerateQuizModal } from '../components/quiz/AIGenerateQuizModal';
 
 interface Message {
     role: 'user' | 'assistant';
@@ -17,7 +20,7 @@ interface Conversation {
 }
 
 export const AIAssistantPage = () => {
-    const navigate = useNavigate();
+    // 3. REMOVED 'navigate' variable
     const [messages, setMessages] = useState<Message[]>([
         { role: 'assistant', content: 'Hello! I can help you study, answer questions about your notes, or generate flashcards. What would you like to do?' }
     ]);
@@ -30,6 +33,8 @@ export const AIAssistantPage = () => {
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
     const [isFlashcardModalOpen, setIsFlashcardModalOpen] = useState(false);
+    
+    const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
     
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -150,6 +155,14 @@ export const AIAssistantPage = () => {
         setMessages(prev => [...prev, successMsg]);
     };
 
+    const handleQuizGenerated = (quiz: any) => {
+        const successMsg: Message = {
+            role: 'assistant',
+            content: `All set! I've created the quiz "${quiz.title}". You will be able to find it in a "Quizzes" section soon.`
+        };
+        setMessages(prev => [...prev, successMsg]);
+    };
+
     return (
         <div className="flex h-screen bg-gray-100">
             {sidebarOpen && (
@@ -178,15 +191,25 @@ export const AIAssistantPage = () => {
                             <h1 className="text-xl font-bold text-gray-800">AI Study Assistant</h1>
                         </div>
                     </div>
-                    {hasUploadedNotes && (
+                    
+                    <div className="flex items-center gap-3">
+                        {hasUploadedNotes && (
+                            <button
+                                onClick={() => setIsFlashcardModalOpen(true)}
+                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition font-medium"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                Generate Flashcards
+                            </button>
+                        )}
                         <button
-                            onClick={() => setIsFlashcardModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition font-medium"
+                            onClick={() => setIsQuizModalOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-teal-600 text-white rounded-lg hover:from-blue-700 hover:to-teal-700 transition font-medium"
                         >
-                            <Sparkles className="w-4 h-4" />
-                            Generate Flashcards
+                            <Brain className="w-4 h-4" />
+                            Generate Quiz
                         </button>
-                    )}
+                    </div>
                 </div>
 
                 {/* Messages */}
@@ -194,7 +217,7 @@ export const AIAssistantPage = () => {
                     {/* Quick Actions Banner */}
                     {messages.length === 1 && (
                         <div className="max-w-3xl mx-auto">
-                            <div className="grid md:grid-cols-2 gap-4 mb-8">
+                            <div className="grid md:grid-cols-3 gap-4 mb-8">
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     className="p-6 bg-white rounded-xl border-2 border-dashed border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50 transition group"
@@ -210,6 +233,14 @@ export const AIAssistantPage = () => {
                                     <Sparkles className="w-8 h-8 text-purple-600 mb-2 group-hover:scale-110 transition" />
                                     <h3 className="font-semibold text-gray-800 mb-1">Generate Flashcards</h3>
                                     <p className="text-sm text-gray-600">Create AI-powered study cards</p>
+                                </button>
+                                <button
+                                    onClick={() => setIsQuizModalOpen(true)}
+                                    className="p-6 bg-gradient-to-br from-blue-50 to-teal-50 rounded-xl border-2 border-blue-300 hover:border-blue-500 hover:shadow-lg transition group"
+                                >
+                                    <Brain className="w-8 h-8 text-blue-600 mb-2 group-hover:scale-110 transition" />
+                                    <h3 className="font-semibold text-gray-800 mb-1">Generate Quiz</h3>
+                                    <p className="text-sm text-gray-600">Test your knowledge on any topic</p>
                                 </button>
                             </div>
                         </div>
@@ -285,6 +316,15 @@ export const AIAssistantPage = () => {
                 onDeckCreated={handleFlashcardGenerated}
                 mode="create"
             />
+
+            {/* 4. ADDED COMMENTED-OUT MODAL TO FIX WARNINGS */}
+            {
+            <AIGenerateQuizModal
+                 isOpen={isQuizModalOpen}
+                 onClose={() => setIsQuizModalOpen(false)}
+                 onQuizCreated={handleQuizGenerated}
+             />
+            }
         </div>
     );
 };

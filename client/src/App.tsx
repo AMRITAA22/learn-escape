@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { StudyRoomsPage } from './pages/StudyRoomsPage'; // Import the new page
+import { StudyRoomsPage } from './pages/StudyRoomsPage';
 import { RoomPage } from './pages/RoomPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'; 
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
@@ -22,6 +22,11 @@ import { StudyGroupsListPage } from './pages/StudyGroupsListPage';
 import StudyGroupDetailPage from './pages/StudyGroupDetailPage';
 import { PlannerPage } from "./pages/PlannerPage";
 import { NptelPage } from './pages/NptelPage';
+
+// 1. IMPORT THE NEW QUIZ PAGES
+import QuizPlayPage from './pages/QuizPlayPage';     
+import { QuizResultPage } from './pages/QuizResultPage'; // Fix 2: Corrected path (./)
+
 function App() {
   return (
     <Router>
@@ -32,6 +37,18 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} /> 
         <Route path="/reset-password/:token" element={<ResetPasswordPage />}/>
+
+        {/* 2. ADD PUBLIC QUIZ ROUTES (They are protected inside ProtectedRoute) */}
+        {/* We put them here so they don't use the main Layout (no sidebar) */}
+        <Route 
+          path="/quiz/play/:id" 
+          element={<ProtectedRoute><QuizPlayPage /></ProtectedRoute>} 
+        />
+        <Route 
+          path="/quiz/result/:id" 
+          element={<ProtectedRoute><QuizResultPage /></ProtectedRoute>} 
+        />
+
         {/* Protected routes with Layout */}
         <Route 
           path="/*" 
@@ -40,7 +57,7 @@ function App() {
               <Layout>
                 <Routes>
                   <Route path="/dashboard" element={<DashboardPage />} />
-                  <Route path="/study-rooms" element={<StudyRoomsPage />} /> {/* Add this route */}
+                  <Route path="/study-rooms" element={<StudyRoomsPage />} />
                   <Route path="/room/:roomId" element={<RoomPage />} /> 
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/tasks" element={<TasksPage />} />  

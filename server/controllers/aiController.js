@@ -3,6 +3,7 @@ const multer = require('multer');
 const Tesseract = require('tesseract.js');
 const Conversation = require('../models/Conversation');
 const FlashcardDeck = require('../models/FlashcardDeck');
+const Quiz = require('../models/Quiz');
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -297,5 +298,57 @@ exports.getConversationById = async (req, res) => {
     } catch (error) {
         console.error('Error fetching conversation:', error);
         res.status(500).json({ message: "Failed to fetch conversation." });
+    }
+};
+exports.generateQuizByTopic = async (req, res) => {
+    const userId = req.user.id;
+    const { topic, numberOfQuestions, title, studyGroupId } = req.body;
+
+    if (!topic) {
+        return res.status(400).json({ message: 'A topic is required.' });
+    }
+
+    const qCount = numberOfQuestions || 10;
+    const quizTitle = title || `AI Quiz: ${topic}`;
+
+    try {
+        const fullPrompt = `Generate a ${qCount}-question multiple-choice quiz about: ${topic}.
+Format your response as a JSON array with this exact structure:
+[
+  {
+    "questionText": "...",
+    "options": ["A", "B", "C", "D"],
+    "correctAnswer": "C"
+  }
+]
+Return ONLY the JSON array, no additional text.`; // <-- CORRECTED: Semicolon is OUTSIDE
+
+        const result = await model.generateContent(fullPrompt);
+        const response = await result.response;
+        let aiResponseText = response.text().replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+        const questions = JSON.parse(aiResponseText);
+
+        if (!Array.isArray(questions) || questions.length === 0) {
+            throw new Error('Invalid quiz format received from AI');
+        }
+
+        // Save the new quiz
+        const newQuiz = await Quiz.create({
+            title: quizTitle,
+            questions: questions,
+            createdBy: userId,
+            resourceType: 'topic',
+            studyGroupId: studyGroupId || null // Link to group if ID is provided
+        });
+
+        res.status(201).json({ 
+            quiz: newQuiz,
+            message: `Successfully created quiz "${quizTitle}"!`
+        });
+
+    } catch (error) {
+        console.error("Error generating quiz from topic:", error);
+        res.status(500).json({ message: "Failed to generate quiz. Please try again." });
     }
 };

@@ -7,7 +7,8 @@ const {
     getConversations, 
     getConversationById,
     generateFlashcards,
-    generateAndSaveDeck
+    generateAndSaveDeck,
+    generateQuizByTopic //
 } = require('../controllers/aiController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -22,5 +23,6 @@ router.get('/conversations/:id', getConversationById);
 // NEW: AI Flashcard generation routes
 router.post('/generate-flashcards', generateFlashcards);
 router.post('/generate-deck', generateAndSaveDeck);
+router.post('/generate-quiz-topic', generateQuizByTopic);
 
 module.exports = router;

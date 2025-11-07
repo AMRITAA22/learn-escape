@@ -17,6 +17,7 @@ const {
     removeMember,
 } = require('../controllers/studyGroupsController');
 const { protect } = require('../middleware/authMiddleware');
+const { getQuizzesForGroup } = require('../controllers/quizController');
 
 // Apply authentication to all routes
 router.use(protect);
@@ -49,6 +50,9 @@ router.route('/:id/resources')
     .get(getSharedResources)
     .post(shareResource);
 router.delete('/:id/resources/:resourceId', deleteSharedResource);
+
+// Group quizzes
+router.route('/:id/quizzes').get(getQuizzesForGroup);
 
 // Group chat
 router.post('/:id/chat', sendMessage);

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import studyGroupsService from '../services/studyGroupsService';
+import quizService from '../services/quizService'; // 1. IMPORT QUIZ SERVICE
 import { useAuth } from '../context/AuthContext';
-import { Users, Target, Share2, ArrowLeft, Plus, Trash2, LogOut, CheckCircle, BookOpen, MessageCircle, Send } from 'lucide-react';
+// 2. IMPORT 'Brain' ICON
+import { Users, Target, Share2, ArrowLeft, Plus, Trash2, LogOut, CheckCircle, BookOpen, MessageCircle, Send, Brain } from 'lucide-react'; 
 
-
+// --- (Keep all the existing interfaces: Member, StudyGroup, etc.) ---
 interface Member {
   userId: {
     _id: string;
@@ -58,22 +60,19 @@ interface StudyGroup {
   }>;
 }
 
-// Chat Tab Component
-// Chat Tab Component with Improved UI
+// --- (Keep the existing ChatTab, ResourcesTab, ResourceCard, and GoalsTab components) ---
+// ... (ChatTab component code) ... [cite: 1352-1387]
 const ChatTab = ({ group, onMessageSent }: any) => {
   const { user } = useAuth();
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const chatEndRef = React.useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [group.chat]);
-
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-
     setSending(true);
     try {
       await studyGroupsService.sendMessage(group._id, newMessage);
@@ -85,12 +84,10 @@ const ChatTab = ({ group, onMessageSent }: any) => {
       setSending(false);
     }
   };
-
   const formatMessageTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
     if (diffInHours < 24) {
       return date.toLocaleTimeString('en-US', { 
         hour: '2-digit', 
@@ -110,7 +107,6 @@ const ChatTab = ({ group, onMessageSent }: any) => {
       });
     }
   };
-
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -119,10 +115,8 @@ const ChatTab = ({ group, onMessageSent }: any) => {
       .toUpperCase()
       .slice(0, 2);
   };
-
   return (
     <div className="flex flex-col h-[calc(100vh-350px)] min-h-[500px]">
-      {/* Chat Header */}
       <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Group Chat</h2>
@@ -135,8 +129,6 @@ const ChatTab = ({ group, onMessageSent }: any) => {
           <span className="text-sm text-gray-600">Online</span>
         </div>
       </div>
-      
-      {/* Messages Container */}
       <div className="flex-1 overflow-y-auto mb-4 space-y-4 pr-2">
         {(!group.chat || group.chat.length === 0) ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
@@ -156,7 +148,6 @@ const ChatTab = ({ group, onMessageSent }: any) => {
               const isOwnMessage = msg.userId._id === user?._id;
               const showAvatar = index === 0 || group.chat[index - 1].userId._id !== msg.userId._id;
               const initials = getInitials(msg.userId.name);
-
               return (
                 <div
                   key={msg._id}
@@ -164,7 +155,6 @@ const ChatTab = ({ group, onMessageSent }: any) => {
                     !showAvatar && 'ml-12'
                   }`}
                 >
-                  {/* Avatar */}
                   {showAvatar ? (
                     <div
                       className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold flex-shrink-0 ${
@@ -176,8 +166,6 @@ const ChatTab = ({ group, onMessageSent }: any) => {
                   ) : (
                     <div className="w-10 flex-shrink-0" />
                   )}
-
-                  {/* Message Content */}
                   <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-[70%]`}>
                     {showAvatar && (
                       <div className={`flex items-center gap-2 mb-1 ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'}`}>
@@ -189,7 +177,6 @@ const ChatTab = ({ group, onMessageSent }: any) => {
                         </span>
                       </div>
                     )}
-                    
                     <div
                       className={`px-4 py-2.5 rounded-2xl shadow-sm ${
                         isOwnMessage
@@ -199,7 +186,6 @@ const ChatTab = ({ group, onMessageSent }: any) => {
                     >
                       <p className="text-sm leading-relaxed break-words">{msg.message}</p>
                     </div>
-
                     {!showAvatar && (
                       <span className="text-xs text-gray-400 mt-1 px-2">
                         {formatMessageTime(msg.createdAt)}
@@ -213,8 +199,6 @@ const ChatTab = ({ group, onMessageSent }: any) => {
           </>
         )}
       </div>
-
-      {/* Message Input */}
       <form onSubmit={handleSendMessage} className="relative">
         <div className="flex gap-3 p-4 bg-gray-50 rounded-2xl border-2 border-gray-200 focus-within:border-indigo-500 transition-colors">
           <input
@@ -238,8 +222,6 @@ const ChatTab = ({ group, onMessageSent }: any) => {
             )}
           </button>
         </div>
-        
-        {/* Character count */}
         {newMessage.length > 0 && (
           <div className="absolute -top-6 right-0 text-xs text-gray-400">
             {newMessage.length} / 500
@@ -249,8 +231,7 @@ const ChatTab = ({ group, onMessageSent }: any) => {
     </div>
   );
 };
-
-// Resources Tab Component
+// ... (ResourcesTab component code) ... [cite: 1387-1419]
 const ResourcesTab = ({ group, onResourceShared }: any) => {
   const { user } = useAuth();
   const [showShareModal, setShowShareModal] = useState(false);
@@ -259,7 +240,6 @@ const ResourcesTab = ({ group, onResourceShared }: any) => {
   const [userFlashcards, setUserFlashcards] = useState<any[]>([]);
   const [selectedResource, setSelectedResource] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
   const loadUserResources = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -278,30 +258,25 @@ const ResourcesTab = ({ group, onResourceShared }: any) => {
       setIsLoading(false);
     }
   }, [shareType]);
-
   useEffect(() => {
     if (showShareModal) {
       loadUserResources();
     }
   }, [showShareModal, loadUserResources]);
-
   const handleShareResource = async () => {
     if (!selectedResource) {
       alert('Please select a resource to share');
       return;
     }
-
     try {
       const resource = shareType === 'note' 
         ? userNotes.find(n => n._id === selectedResource)
         : userFlashcards.find(f => f._id === selectedResource);
-
       await studyGroupsService.shareResource(group._id, {
         resourceType: shareType,
         resourceId: selectedResource,
         title: resource?.title || resource?.name || 'Untitled',
       });
-
       setShowShareModal(false);
       setSelectedResource('');
       onResourceShared();
@@ -309,7 +284,7 @@ const ResourcesTab = ({ group, onResourceShared }: any) => {
       alert('Failed to share resource');
     }
   };
-const handleDeleteResource = async (resourceId: string) => {
+  const handleDeleteResource = async (resourceId: string) => {
     try {
       await studyGroupsService.deleteSharedResource(group._id, resourceId);
       onResourceShared(); // Reload the group data
@@ -329,7 +304,6 @@ const handleDeleteResource = async (resourceId: string) => {
           Share Resource
         </button>
       </div>
-
       {group.sharedResources.length === 0 ? (
         <div className="text-center py-12">
           <Share2 size={48} className="text-gray-300 mx-auto mb-4" />
@@ -349,13 +323,10 @@ const handleDeleteResource = async (resourceId: string) => {
           ))}
         </div>
       )}
-
-      {/* Share Resource Modal */}
       {showShareModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Share Resource</h2>
-            
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">Resource Type</label>
               <div className="flex gap-2">
@@ -381,7 +352,6 @@ const handleDeleteResource = async (resourceId: string) => {
                 </button>
               </div>
             </div>
-
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select {shareType === 'note' ? 'Note' : 'Flashcard Deck'}
@@ -410,7 +380,6 @@ const handleDeleteResource = async (resourceId: string) => {
                 </select>
               )}
             </div>
-
             <div className="flex gap-4">
               <button
                 onClick={() => setShowShareModal(false)}
@@ -431,12 +400,9 @@ const handleDeleteResource = async (resourceId: string) => {
     </div>
   );
 };
-
-// Resource Card Component
-// Resource Card Component
+// ... (ResourceCard component code) ... [cite: 1419-1436]
 const ResourceCard = ({ resource, groupId, currentUserId, isAdmin, onDelete }: any) => {
   const [isDeleting, setIsDeleting] = useState(false);
-
   const getResourceIcon = (type: string) => {
     switch (type) {
       case 'note':
@@ -447,7 +413,6 @@ const ResourceCard = ({ resource, groupId, currentUserId, isAdmin, onDelete }: a
         return <Share2 size={20} className="text-gray-600" />;
     }
   };
-
   const getResourceLink = (resource: any) => {
     switch (resource.resourceType) {
       case 'note':
@@ -458,11 +423,9 @@ const ResourceCard = ({ resource, groupId, currentUserId, isAdmin, onDelete }: a
         return '#';
     }
   };
-
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
     if (window.confirm('Are you sure you want to delete this shared resource?')) {
       setIsDeleting(true);
       try {
@@ -475,10 +438,7 @@ const ResourceCard = ({ resource, groupId, currentUserId, isAdmin, onDelete }: a
       }
     }
   };
-
-  // Check if current user can delete (owner or admin)
   const canDelete = currentUserId === resource.sharedBy._id || isAdmin;
-
   return (
     <div className="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow group">
       <div className="flex items-start gap-3 mb-3">
@@ -500,7 +460,6 @@ const ResourceCard = ({ resource, groupId, currentUserId, isAdmin, onDelete }: a
           </button>
         )}
       </div>
-      
       <div className="flex items-center justify-between">
         <div className="text-xs text-gray-600">
           <p>Shared by <span className="font-medium">{resource.sharedBy.name}</span></p>
@@ -515,9 +474,8 @@ const ResourceCard = ({ resource, groupId, currentUserId, isAdmin, onDelete }: a
       </div>
     </div>
   );
-};  
-
-// Goals Tab Component
+};
+// ... (GoalsTab component code) ... [cite: 1436-1476]
 const GoalsTab = ({ group, onGoalUpdated }: any) => {
   const { user } = useAuth();
   const [showAddGoal, setShowAddGoal] = useState(false);
@@ -528,7 +486,6 @@ const GoalsTab = ({ group, onGoalUpdated }: any) => {
     targetValue: 1,
     type: 'tasks' as 'hours' | 'sessions' | 'tasks'
   });
-
   const handleAddGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -546,7 +503,6 @@ const GoalsTab = ({ group, onGoalUpdated }: any) => {
       alert('Failed to add goal');
     }
   };
-
   const handleUpdateProgress = async (goalId: string, increment: number) => {
     try {
       await studyGroupsService.updateGoalProgress(group._id, goalId, increment);
@@ -555,7 +511,6 @@ const GoalsTab = ({ group, onGoalUpdated }: any) => {
       alert('Failed to update progress');
     }
   };
-
   const handleDeleteGoal = async (goalId: string) => {
     if (window.confirm('Are you sure you want to delete this goal?')) {
       try {
@@ -567,7 +522,6 @@ const GoalsTab = ({ group, onGoalUpdated }: any) => {
       }
     }
   };
-
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -580,7 +534,6 @@ const GoalsTab = ({ group, onGoalUpdated }: any) => {
           Add Goal
         </button>
       </div>
-
       {group.goals.length === 0 ? (
         <div className="text-center py-12">
           <Target size={48} className="text-gray-300 mx-auto mb-4" />
@@ -591,7 +544,6 @@ const GoalsTab = ({ group, onGoalUpdated }: any) => {
           {group.goals.map((goal: any) => {
             const progress = (goal.currentValue / goal.targetValue) * 100;
             const isCompleted = goal.currentValue >= goal.targetValue;
-            
             return (
               <div
                 key={goal._id}
@@ -615,7 +567,6 @@ const GoalsTab = ({ group, onGoalUpdated }: any) => {
                     <Trash2 size={18} />
                   </button>
                 </div>
-
                 <div className="mb-3">
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-600">Progress</span>
@@ -630,7 +581,6 @@ const GoalsTab = ({ group, onGoalUpdated }: any) => {
                     />
                   </div>
                 </div>
-
                 {!isCompleted && (
                   <div className="flex gap-2">
                     <button
@@ -658,8 +608,6 @@ const GoalsTab = ({ group, onGoalUpdated }: any) => {
           })}
         </div>
       )}
-
-      {/* Add Goal Modal */}
       {showAddGoal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -730,14 +678,106 @@ const GoalsTab = ({ group, onGoalUpdated }: any) => {
   );
 };
 
-// Main Component
+// --- 3. CREATE THE NEW QUIZ TAB COMPONENT ---
+interface Quiz {
+  _id: string;
+  title: string;
+  questions: any[];
+  createdBy: {
+    _id: string;
+    name: string;
+  };
+  createdAt: string;
+}
+
+const QuizTab = ({ group }: { group: StudyGroup }) => {
+  const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchQuizzes = async () => {
+      try {
+        setIsLoading(true);
+        const data = await quizService.getQuizzesForGroup(group._id);
+        setQuizzes(data);
+      } catch (error) {
+        console.error("Failed to fetch quizzes:", error);
+        alert("Could not load quizzes for this group.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchQuizzes();
+  }, [group._id]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <p className="ml-3 text-gray-600">Loading quizzes...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6">Group Quizzes</h2>
+      {quizzes.length === 0 ? (
+        <div className="text-center py-12">
+          <Brain size={48} className="text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">
+            No quizzes have been added to this group yet.
+          </p>
+          <p className="text-sm text-gray-400 mt-2">
+            Go to the AI Assistant to generate a new quiz and assign it to this group.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {quizzes.map((quiz) => (
+            <div
+              key={quiz._id}
+              className="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{quiz.title}</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {quiz.questions.length} Questions
+                  </p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    Created by {quiz.createdBy.name} on {new Date(quiz.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                {/* This Link won't work yet, but it's what we'll build next.
+                  It links to a page to PLAY the quiz.
+                */}
+                <Link
+                  to={`/quiz/play/${quiz._id}`}
+                  className="bg-indigo-600 text-white px-5 py-2 rounded-lg hover:bg-indigo-700 font-medium transition-colors"
+                >
+                  Start Quiz
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// --- 4. UPDATE THE MAIN COMPONENT ---
 const StudyGroupDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [group, setGroup] = useState<StudyGroup | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'resources' | 'chat'>('overview');
+  
+  // 5. ADD 'quiz' TO THE TAB STATE
+  const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'resources' | 'chat' | 'quiz'>('overview');
 
   const loadGroup = useCallback(async () => {
     try {
@@ -756,6 +796,7 @@ const StudyGroupDetailPage: React.FC = () => {
     loadGroup();
   }, [loadGroup]);
 
+  // --- (Keep handleLeaveGroup and handleDeleteGroup) ---
   const handleLeaveGroup = async () => {
     if (window.confirm('Are you sure you want to leave this study group?')) {
       try {
@@ -825,7 +866,6 @@ const StudyGroupDetailPage: React.FC = () => {
                 </span>
               </div>
             </div>
-
             {group.groupCode && (
               <div className="text-right">
                 <span className="text-xs text-gray-500">Group Code</span>
@@ -838,6 +878,7 @@ const StudyGroupDetailPage: React.FC = () => {
         {/* Tabs Navigation */}
         <div className="bg-white rounded-lg shadow-lg mb-6">
           <div className="flex border-b">
+            {/* 6. ADD THE QUIZ TAB BUTTON */}
             <button
               onClick={() => setActiveTab('overview')}
               className={`flex-1 px-6 py-4 font-medium transition-colors ${
@@ -878,6 +919,16 @@ const StudyGroupDetailPage: React.FC = () => {
             >
               Chat
             </button>
+            <button
+              onClick={() => setActiveTab('quiz')}
+              className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                activeTab === 'quiz'
+                  ? 'text-indigo-600 border-b-2 border-indigo-600'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              Quizzes
+            </button>
           </div>
         </div>
 
@@ -896,7 +947,6 @@ const StudyGroupDetailPage: React.FC = () => {
                     .join('')
                     .toUpperCase()
                     .slice(0, 2);
-                  
                   return (
                     <div key={member.userId?._id} className="bg-gray-50 p-4 rounded-lg flex items-center gap-3">
                       <div className="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
@@ -923,6 +973,11 @@ const StudyGroupDetailPage: React.FC = () => {
 
           {activeTab === 'chat' && (
             <ChatTab group={group} onMessageSent={loadGroup} />
+          )}
+
+          {/* 7. RENDER THE NEW QUIZ TAB */}
+          {activeTab === 'quiz' && (
+            <QuizTab group={group} />
           )}
         </div>
       </div>
