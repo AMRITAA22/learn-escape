@@ -1,108 +1,6 @@
-// import React, { useState, useEffect } from "react";
-// import tasksService from "../services/tasksService";
-
-// interface Task {
-//   _id?: string;
-//   title: string;
-//   dueDate?: string | null;
-//   completed?: boolean;
-// }
-
-// const TasksPage: React.FC = () => {
-//   const [tasks, setTasks] = useState<Task[]>([]);
-//   const [newTaskTitle, setNewTaskTitle] = useState("");
-//   const [newTaskDueDate, setNewTaskDueDate] = useState("");
-
-//   useEffect(() => {
-//     const fetchTasks = async () => {
-//       try {
-//         const data = await tasksService.getTasks();
-//         setTasks(data);
-//       } catch (err) {
-//         console.error("Failed to load tasks:", err);
-//       }
-//     };
-//     fetchTasks();
-//   }, []);
-
-//   const handleAddTask = async () => {
-//     if (!newTaskTitle.trim()) return;
-//     try {
-//       const newTask = await tasksService.createTask({
-//         title: newTaskTitle,
-//         dueDate: newTaskDueDate || null,
-//       });
-//       setTasks([newTask, ...tasks]);
-//       setNewTaskTitle("");
-//       setNewTaskDueDate("");
-//     } catch (err) {
-//       console.error("Failed to add task:", err);
-//     }
-//   };
-
-//   const handleDelete = async (id: string) => {
-//     await tasksService.deleteTask(id);
-//     setTasks(tasks.filter((t) => t._id !== id));
-//   };
-
-//   return (
-//     <div className="p-8 bg-gray-50 min-h-screen">
-//       <h1 className="text-3xl font-bold mb-6">Tasks</h1>
-
-//       <div className="mb-6 flex gap-3">
-//         <input
-//           type="text"
-//           placeholder="Task title"
-//           value={newTaskTitle}
-//           onChange={(e) => setNewTaskTitle(e.target.value)}
-//           className="border rounded p-2 flex-1"
-//         />
-//         <input
-//           type="date"
-//           value={newTaskDueDate}
-//           onChange={(e) => setNewTaskDueDate(e.target.value)}
-//           className="border rounded p-2"
-//         />
-//         <button
-//           onClick={handleAddTask}
-//           className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-//         >
-//           Add Task
-//         </button>
-//       </div>
-
-//       <ul>
-//         {tasks.map((task) => (
-//           <li
-//             key={task._id}
-//             className="bg-white p-3 rounded shadow flex justify-between items-center mb-2"
-//           >
-//             <div>
-//               <p className="font-medium">{task.title}</p>
-//               {task.dueDate && (
-//                 <p className="text-sm text-gray-500">
-//                   Due: {new Date(task.dueDate).toLocaleDateString()}
-//                 </p>
-//               )}
-//             </div>
-//             <button
-//               onClick={() => handleDelete(task._id!)}
-//               className="text-red-500 hover:underline"
-//             >
-//               Delete
-//             </button>
-//           </li>
-//         ))}
-//       </ul>
-//     </div>
-//   );
-// };
-
-// export default TasksPage;
-
 import React, { useState, useEffect } from 'react';
 import tasksService from '../services/tasksService';
-import { Trash2, Plus, Calendar, AlertCircle, CheckCircle2, Circle } from 'lucide-react';
+import { Trash2, Plus, Calendar, AlertCircle, CheckCircle2, Circle, Clock } from 'lucide-react';
 import achievementsService from '../services/achievementsService';
 
 interface Task {
@@ -112,6 +10,7 @@ interface Task {
     dueDate: string | null;
     createdAt: string;
     updatedAt: string;
+    estimatedMinutes?: number; // <-- This is correct
 }
 
 export const TasksPage = () => {
@@ -120,6 +19,7 @@ export const TasksPage = () => {
     const [newTaskDueDate, setNewTaskDueDate] = useState('');
     const [isLoading, setIsLoading] = useState(true);
     const [editingTask, setEditingTask] = useState<string | null>(null);
+    const [newTaskEstMinutes, setNewTaskEstMinutes] = useState(60); // <-- This is correct
 
     useEffect(() => {
         tasksService.getTasks()
@@ -131,14 +31,16 @@ export const TasksPage = () => {
         e.preventDefault();
         if (!newTaskTitle.trim()) return;
         try {
-            const newTask = await tasksService.createTask({ 
+            const newTask = await tasksService.createTask({
                 title: newTaskTitle,
-                dueDate: newTaskDueDate || null
+                dueDate: newTaskDueDate || null, // <-- FIX 1: Added comma
+                estimatedMinutes: newTaskEstMinutes
             });
             setTasks(prevTasks => [newTask, ...prevTasks]);
             setNewTaskTitle('');
             setNewTaskDueDate('');
-        } catch (error) {
+            setNewTaskEstMinutes(60); // <-- FIX 2: Added state reset
+        } catch (error: any) {
             console.error("Failed to create task", error);
         }
     };
@@ -146,27 +48,27 @@ export const TasksPage = () => {
     const handleToggleComplete = async (taskId: string, completed: boolean) => {
         try {
             const updatedTask = await tasksService.updateTask(taskId, { completed: !completed });
-            setTasks(prevTasks => prevTasks.map(task => 
+            setTasks(prevTasks => prevTasks.map(task =>
                 task._id === taskId ? updatedTask : task
             ));
-            
+
             if (!completed) {
                 achievementsService.checkAchievements()
-                    .catch(err => console.error("Failed to check achievements", err));
+                    .catch((err: any) => console.error("Failed to check achievements", err));
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to update task", error);
         }
     };
 
-    const handleUpdateDueDate = async (taskId: string, dueDate: string) => {
+    const handleUpdateTask = async (taskId: string, updates: { dueDate?: string | null, estimatedMinutes?: number }) => {
         try {
-            const updatedTask = await tasksService.updateTask(taskId, { dueDate: dueDate || null });
-            setTasks(prevTasks => prevTasks.map(task => 
+            const updatedTask = await tasksService.updateTask(taskId, updates);
+            setTasks(prevTasks => prevTasks.map(task =>
                 task._id === taskId ? updatedTask : task
             ));
             setEditingTask(null);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Failed to update task", error);
         }
     };
@@ -176,7 +78,7 @@ export const TasksPage = () => {
             try {
                 await tasksService.deleteTask(taskId);
                 setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
-            } catch (error) {
+            } catch (error: any) {
                 console.error("Failed to delete task", error);
             }
         }
@@ -242,6 +144,18 @@ export const TasksPage = () => {
                             placeholder="Add a new task..."
                             className="flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
+                        {/* This is the new input field - Correctly placed */}
+                        <div className="relative">
+                            <input
+                                type="number"
+                                value={newTaskEstMinutes}
+                                onChange={(e) => setNewTaskEstMinutes(Number(e.target.value))}
+                                className="pl-4 pr-12 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-32"
+                            />
+                            <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                                min
+                            </span>
+                        </div>
                         <div className="relative">
                             <Calendar size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                             <input
@@ -251,8 +165,8 @@ export const TasksPage = () => {
                                 className="pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto"
                             />
                         </div>
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             className="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2 font-semibold transition-colors"
                         >
                             <Plus size={20} /> Add Task
@@ -277,46 +191,66 @@ export const TasksPage = () => {
                                         >
                                             <Circle size={24} />
                                         </button>
-                                        
+
                                         <div className="flex-grow">
                                             <p className="text-gray-900 font-medium">{task.title}</p>
                                             
-                                            {editingTask === task._id ? (
-                                                <div className="mt-2 flex items-center gap-2">
-                                                    <Calendar size={16} className="text-gray-400" />
-                                                    <input
-                                                        type="date"
-                                                        defaultValue={task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''}
-                                                        onChange={(e) => handleUpdateDueDate(task._id, e.target.value)}
-                                                        onBlur={() => setEditingTask(null)}
-                                                        className="text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                                        autoFocus
-                                                    />
-                                                </div>
-                                            ) : task.dueDate ? (
-                                                <div 
-                                                    onClick={() => setEditingTask(task._id)}
-                                                    className={`mt-2 flex items-center gap-2 text-sm cursor-pointer ${
-                                                        isOverdue(task.dueDate) 
-                                                            ? 'text-red-600' 
-                                                            : isDueToday(task.dueDate)
-                                                            ? 'text-orange-600'
-                                                            : 'text-gray-500'
-                                                    }`}
-                                                >
-                                                    {isOverdue(task.dueDate) && <AlertCircle size={16} />}
-                                                    <Calendar size={16} />
-                                                    <span className="font-medium">{formatDueDate(task.dueDate)}</span>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setEditingTask(task._id)}
-                                                    className="mt-2 flex items-center gap-2 text-sm text-gray-400 hover:text-gray-600"
-                                                >
-                                                    <Calendar size={16} />
-                                                    <span>Add due date</span>
-                                                </button>
-                                            )}
+                                            {/* Render Task metadata */}
+                                            <div className="mt-2 flex items-center gap-4">
+                                                {/* Due Date Editing */}
+                                                {editingTask === task._id ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <Calendar size={16} className="text-gray-400" />
+                                                        <input
+                                                            type="date"
+                                                            defaultValue={task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''}
+                                                            onChange={(e) => handleUpdateTask(task._id, { dueDate: e.target.value })}
+                                                            onBlur={() => setEditingTask(null)}
+                                                            className="text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <div 
+                                                        onClick={() => setEditingTask(task._id)}
+                                                        className={`flex items-center gap-2 text-sm cursor-pointer ${
+                                                            task.dueDate ? 
+                                                            (isOverdue(task.dueDate) 
+                                                                ? 'text-red-600' 
+                                                                : isDueToday(task.dueDate)
+                                                                ? 'text-orange-600'
+                                                                : 'text-gray-500')
+                                                            : 'text-gray-400 hover:text-gray-600'
+                                                        }`}
+                                                    >
+                                                        {task.dueDate && isOverdue(task.dueDate) && <AlertCircle size={16} />}
+                                                        <Calendar size={16} />
+                                                        <span className="font-medium">{task.dueDate ? formatDueDate(task.dueDate) : 'Add date'}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Estimated Minutes Editing */}
+                                                {editingTask === task._id ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock size={16} className="text-gray-400" />
+                                                        <input
+                                                            type="number"
+                                                            defaultValue={task.estimatedMinutes || 60}
+                                                            onChange={(e) => handleUpdateTask(task._id, { estimatedMinutes: Number(e.target.value) })}
+                                                            onBlur={() => setEditingTask(null)}
+                                                            className="text-sm px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-indigo-500 w-20"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                     <div 
+                                                        onClick={() => setEditingTask(task._id)}
+                                                        className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer"
+                                                    >
+                                                        <Clock size={16} />
+                                                        <span>{task.estimatedMinutes || 60} min</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <button
@@ -351,15 +285,23 @@ export const TasksPage = () => {
                                         >
                                             <CheckCircle2 size={24} />
                                         </button>
-                                        
+
                                         <div className="flex-grow">
                                             <p className="text-gray-500 line-through">{task.title}</p>
-                                            {task.dueDate && (
-                                                <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
-                                                    <Calendar size={16} />
-                                                    <span>{formatDueDate(task.dueDate)}</span>
-                                                </div>
-                                            )}
+                                            <div className="mt-2 flex items-center gap-4">
+                                                {task.dueDate && (
+                                                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                                                        <Calendar size={16} />
+                                                        <span>{formatDueDate(task.dueDate)}</span>
+                                                    </div>
+                                                )}
+                                                {task.estimatedMinutes && (
+                                                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                                                        <Clock size={16} />
+                                                        <span>{task.estimatedMinutes} min</span>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <button

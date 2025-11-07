@@ -12,11 +12,12 @@ exports.getTasks = async (req, res) => {
 
 // Create a new task
 exports.createTask = async (req, res) => {
-    const { title, dueDate } = req.body;  // ADD dueDate
+    const { title, dueDate, estimatedMinutes } = req.body; // <-- Add estimatedMinutes
     try {
         const task = await Task.create({
             title,
-            dueDate: dueDate || null,  // ADD THIS
+            dueDate: dueDate || null,
+            estimatedMinutes: estimatedMinutes || 60, // <-- Add this
             createdBy: req.user.id,
         });
         res.status(201).json(task);
@@ -36,8 +37,9 @@ exports.updateTask = async (req, res) => {
         // Update fields that are provided
         if (req.body.completed !== undefined) task.completed = req.body.completed;
         if (req.body.title !== undefined) task.title = req.body.title;
-        if (req.body.dueDate !== undefined) task.dueDate = req.body.dueDate;  // ADD THIS
-        
+        if (req.body.dueDate !== undefined) task.dueDate = req.body.dueDate;
+        if (req.body.estimatedMinutes !== undefined) task.estimatedMinutes = req.body.estimatedMinutes; // <-- Add this
+
         await task.save();
         res.status(200).json(task);
     } catch (error) {
