@@ -78,7 +78,10 @@ const loadCourses = () => {
         });
 };
 
+
+loadCourses();
+
 module.exports = {
-    loadCourses,
-    getCourses: () => courses,
+  loadCourses,
+  getCourses: () => courses,
 };

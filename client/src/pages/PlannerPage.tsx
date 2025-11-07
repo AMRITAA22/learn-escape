@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import tasksService from '../services/tasksService';
+import tasksService from "../services/tasksService";
 import { Calendar, Brain, Loader2 } from "lucide-react";
 
 interface Task {
@@ -9,13 +9,13 @@ interface Task {
   dueDate?: string;
   priority?: string;
   estimatedMinutes?: number;
-  completed?: boolean; // <-- Added this
+  completed?: boolean;
 }
 
 interface StudySlot {
-  dateISO: string;  // YYYY-MM-DD key
-  dayLabel: string; // "Mon, Nov 3"
-  time: string;     // "9:00"
+  dateISO: string;
+  dayLabel: string;
+  time: string;
   taskTitle: string;
   color: string;
 }
@@ -27,23 +27,18 @@ export const PlannerPage = () => {
   const [plan, setPlan] = useState<StudySlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // --- Core: Generate plan based on task deadlines ---
+  // --- Core logic ---
   const autoGeneratePlan = useCallback((taskList: Task[]) => {
-    if (!taskList || taskList.length === 0) {
-      setPlan([]); // Clear plan if no tasks
+    if (!taskList?.length) {
+      setPlan([]);
       return;
     }
-    console.log("Generating plan with tasks:", taskList);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // FIX 2: Filter for incomplete tasks first
-    const incompleteTasks = taskList.filter(task => !task.completed);
-    console.log("Incomplete tasks:", incompleteTasks);
-
-    // Sort by earliest deadline
-    const sorted = [...incompleteTasks].sort((a, b) => {
+    const incomplete = taskList.filter((t) => !t.completed);
+    const sorted = [...incomplete].sort((a, b) => {
       const da = parseDeadline(a.dueDate);
       const db = parseDeadline(b.dueDate);
       if (!da && !db) return 0;
@@ -53,90 +48,106 @@ export const PlannerPage = () => {
     });
 
     const slots: StudySlot[] = [];
+    const usedPerDay: Record<string, Set<string>> = {};
 
     sorted.forEach((task, i) => {
       const color = COLORS[i % COLORS.length];
-      const due = parseDeadline(task.dueDate);
-      
-      // Skip tasks with no due date for now (or assign to today)
-      if (!due) {
-        console.warn(`Task "${task.title}" has no due date, skipping.`);
-        return; 
-      }
-      
-      // Make sure due date is not in the past
-      if (due.getTime() < today.getTime()) {
-         console.warn(`Task "${task.title}" is overdue, skipping.`);
-         return; // Skip overdue tasks
-      }
+      let due = parseDeadline(task.dueDate);
+      if (!due) return;
 
-      const minutes = task.estimatedMinutes ?? 60; // Default to 60 min
-      const hoursNeeded = Math.ceil(minutes / 60);
+      // --- Shift weekend due date to previous Friday ---
+      const dayOfDue = due.getDay();
+      if (dayOfDue === 0) due.setDate(due.getDate() - 2); // Sunday → Friday
+      if (dayOfDue === 6) due.setDate(due.getDate() - 1); // Saturday → Friday
 
-      // Distribute evenly between today and due date (max 7 days)
-      const maxWindow = 7;
+      if (due.getTime() <= today.getTime()) return;
+
+      const minutes = task.estimatedMinutes ?? 60;
+      const hoursNeeded = Math.max(Math.ceil(minutes / 60), 1);
+
+      // --- Build available weekdays only (Mon–Fri) ---
+      const availableDays: Date[] = [];
       const start = new Date(today);
-      const end = new Date(Math.min(due.getTime(), start.getTime() + (maxWindow - 1) * 86400000));
-      
-      const availableDays = dateRange(start, end);
-      if (availableDays.length === 0) {
-        availableDays.push(today);
-      }
-      
-      console.log(`Task: ${task.title}, Hours: ${hoursNeeded}, Days: ${availableDays.map(d => d.getDate())}`);
+      start.setDate(today.getDate() + 1);
 
-      for (let j = 0; j < hoursNeeded; j++) {
-        // Distribute hours across available days
-        const day = availableDays[j % availableDays.length];
+      for (let d = new Date(start); d <= due; d.setDate(d.getDate() + 1)) {
+        const dayOfWeek = d.getDay();
+        // skip weekends
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          availableDays.push(new Date(d));
+        }
+      }
+
+      if (availableDays.length === 0) return;
+
+      console.log(
+        `📘 Task: ${task.title}, ${availableDays.length} available weekdays before ${due.toDateString()}`
+      );
+
+      const sessionsToDistribute = Math.min(hoursNeeded, availableDays.length);
+      const step =
+        sessionsToDistribute > 1
+          ? Math.floor((availableDays.length - 1) / (sessionsToDistribute - 1))
+          : 1;
+
+      for (let s = 0; s < sessionsToDistribute; s++) {
+        const idx = Math.min(s * step, availableDays.length - 1);
+        const day = availableDays[idx];
+        if (!day || isNaN(day.getTime())) continue;
+
         const { dateISO, dayLabel } = formatDate(day);
-        
-        // Simple time logic: 9am, 10am, 11am, etc.
-        const time = `${9 + (j % 6)}:00 AM`; 
-        
-        slots.push({
-          dateISO,
-          dayLabel,
-          time,
-          taskTitle: task.title,
-          color,
-        });
+        if (!usedPerDay[dateISO]) usedPerDay[dateISO] = new Set();
+        if (usedPerDay[dateISO].has(task.title)) continue;
+
+        usedPerDay[dateISO].add(task.title);
+        const time = `${9 + ((s + i) % 6)}:00 AM`;
+
+        slots.push({ dateISO, dayLabel, time, taskTitle: task.title, color });
+      }
+
+      // --- Add final session ON due date (if weekday) ---
+      const dueDay = due.getDay();
+      if (dueDay !== 0 && dueDay !== 6) {
+        const { dateISO, dayLabel } = formatDate(due);
+        if (!usedPerDay[dateISO]) usedPerDay[dateISO] = new Set();
+        if (!usedPerDay[dateISO].has(task.title)) {
+          usedPerDay[dateISO].add(task.title);
+          slots.push({
+            dateISO,
+            dayLabel,
+            time: "9:00 AM",
+            taskTitle: task.title,
+            color,
+          });
+        }
       }
     });
 
     slots.sort((a, b) => {
       if (a.dateISO !== b.dateISO) return a.dateISO < b.dateISO ? -1 : 1;
-      const ha = parseInt(a.time);
-      const hb = parseInt(b.time);
-      return ha - hb;
+      return parseInt(a.time) - parseInt(b.time);
     });
 
-    console.log("✅ Generated plan:", slots);
+    console.log("✅ Final Smart Weekday Plan:", slots);
     setPlan(slots);
   }, []);
 
-
-  // --- Fetch tasks from backend (MongoDB) ---
+  // --- Fetch ---
   const loadTasks = useCallback(async () => {
     try {
       setIsLoading(true);
       const data = await tasksService.getTasks();
-      console.log("✅ Fetched tasks from MongoDB:", data);
-      if (Array.isArray(data)) {
+      if (Array.isArray(data) && data.length) {
         setTasks(data);
-        if (data.length > 0) {
-            autoGeneratePlan(data);
-        } else {
-            console.warn("⚠️ No tasks found, skipping plan generation");
-            setPlan([]); // Ensure plan is empty
-        }
-      }
+        autoGeneratePlan(data);
+      } else setPlan([]);
     } catch (err) {
       console.error("❌ Failed to fetch tasks:", err);
     } finally {
       setIsLoading(false);
     }
   }, [autoGeneratePlan]);
-  
+
   useEffect(() => {
     loadTasks();
   }, [loadTasks]);
@@ -144,27 +155,20 @@ export const PlannerPage = () => {
   // --- Helpers ---
   const parseDeadline = (raw?: string): Date | null => {
     if (!raw) return null;
-
-    // FIX 3: Timezone Bug Fix
-    // DB stores "2025-11-10T00:00:00.000Z" (UTC midnight)
-    // We must parse the date part as LOCAL time.
-    const datePart = raw.split('T')[0];
-    const parts = datePart.split('-').map(Number);
-    if (parts.length === 3) {
-        // new Date(year, monthIndex, day) creates a local date.
-        const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        d.setHours(0, 0, 0, 0); // Ensure it's local midnight
-        return isNaN(d.getTime()) ? null : d;
-    }
-    
-    // Fallback for other formats (less reliable)
     const d = new Date(raw);
-    return isNaN(d.getTime()) ? null : d;
+    if (isNaN(d.getTime())) return null;
+    d.setHours(0, 0, 0, 0);
+    return d;
   };
 
-
-  const formatDate = (d: Date) => {
-    const dateISO = d.toISOString().split("T")[0];
+  const formatDate = (d?: Date) => {
+    if (!d || isNaN(d.getTime())) {
+      return { dateISO: "Invalid", dayLabel: "Invalid Date" };
+    }
+    const dateISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(d.getDate()).padStart(2, "0")}`;
     const dayLabel = d.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
@@ -173,29 +177,10 @@ export const PlannerPage = () => {
     return { dateISO, dayLabel };
   };
 
-  const dateRange = (start: Date, end: Date): Date[] => {
-    const arr: Date[] = [];
-    const cur = new Date(start);
-    cur.setHours(0, 0, 0, 0);
-    const last = new Date(end);
-    last.setHours(0, 0, 0, 0);
-
-    if (cur > last) {
-        console.warn("Date range start is after end");
-        return [];
-    }
-    
-    while (cur <= last) {
-      arr.push(new Date(cur));
-      cur.setDate(cur.getDate() + 1);
-    }
-    return arr;
-  };
-
   // --- UI ---
   if (isLoading) {
     return (
-      <div className="p-8 text-center text-gray-500 flex items-center justify-center min-h-[400px]">
+      <div className="p-8 flex items-center justify-center min-h-[400px] text-gray-500">
         <Loader2 className="w-12 h-12 animate-spin text-indigo-600 mr-4" />
         Loading your Smart Study Plan...
       </div>
@@ -203,6 +188,7 @@ export const PlannerPage = () => {
   }
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   const uiDays = Array.from({ length: 7 }).map((_, i) => {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
@@ -213,7 +199,7 @@ export const PlannerPage = () => {
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="text-3xl font-bold flex items-center gap-2 text-gray-900">
           <Brain size={28} /> Smart Study Planner
         </h1>
         <button
@@ -225,13 +211,19 @@ export const PlannerPage = () => {
       </div>
 
       <p className="text-gray-600 mb-6">
-        Automatically generates a personalized study plan based on your real task deadlines and estimated times.
+        Automatically generates a personalized study plan based on your real
+        task deadlines and estimated times.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
         {uiDays.map((day) => (
-          <div key={day.dateISO} className="bg-white rounded-lg shadow-md p-3 min-h-[220px]">
-            <h3 className="font-semibold text-center text-indigo-600 mb-3">{day.dayLabel}</h3>
+          <div
+            key={day.dateISO}
+            className="bg-white rounded-lg shadow-md p-3 min-h-[220px]"
+          >
+            <h3 className="font-semibold text-center text-indigo-600 mb-3">
+              {day.dayLabel}
+            </h3>
             <div className="space-y-2">
               {plan
                 .filter((slot) => slot.dateISO === day.dateISO)
@@ -246,7 +238,9 @@ export const PlannerPage = () => {
                   </div>
                 ))}
               {plan.filter((s) => s.dateISO === day.dateISO).length === 0 && (
-                <p className="text-xs text-gray-400 text-center pt-4">No sessions</p>
+                <p className="text-xs text-gray-400 text-center pt-4">
+                  No sessions
+                </p>
               )}
             </div>
           </div>
@@ -255,3 +249,5 @@ export const PlannerPage = () => {
     </div>
   );
 };
+
+export default PlannerPage;

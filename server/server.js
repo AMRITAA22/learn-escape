@@ -1,3 +1,4 @@
+require('./nptelData').loadCourses();
 const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
@@ -78,7 +79,7 @@ app.use('/api/achievements', require('./routes/achievements'));
 // app.use('/api/goals', require('./routes/goals'));           // NEW
 // app.use('/api/achievements', require('./routes/achievements'));
 app.use('/api/study-groups', require('./routes/studyGroups'));
-app.use
+app.use('/api/nptel', require('./routes/nptel'));
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
 
