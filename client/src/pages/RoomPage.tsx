@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Peer, { MediaConnection } from 'peerjs';
 import { socketService } from '../services/socketService';
 import { useAuth } from '../context/AuthContext';
-import { Users, Mic, MicOff, Video as VideoIcon, VideoOff } from 'lucide-react';
+import { Users, Mic, MicOff, Video as VideoIcon, VideoOff, LogOut } from 'lucide-react';
 import Video from '../components/rooms/Video';
 
 // --- TYPE DEFINITIONS ---
@@ -15,6 +15,7 @@ interface VideoStream { peerId: string; stream: MediaStream; }
 export const RoomPage = () => {
     const { roomId } = useParams<{ roomId: string }>();
     const { user } = useAuth();
+    const navigate = useNavigate();
 
     const [myPeerId, setMyPeerId] = useState('');
     const [localStream, setLocalStream] = useState<MediaStream>();
@@ -29,13 +30,13 @@ export const RoomPage = () => {
     
     const callsRef = useRef<Map<string, MediaConnection>>(new Map());
     const peerInstanceRef = useRef<Peer | null>(null);
+    const localStreamRef = useRef<MediaStream | null>(null);
 
     useEffect(() => {
         if (!user || !roomId) return;
 
         const peer = new Peer();
         peerInstanceRef.current = peer;
-        let localStreamRef: MediaStream;
 
         const addVideoStream = (peerId: string, stream: MediaStream) => {
             setVideoStreams(prev => {
@@ -52,8 +53,8 @@ export const RoomPage = () => {
         socketService.connect();
 
         socketService.on('user-joined', (data: { peerId: string; user: any }) => {
-            if (localStreamRef) {
-                const call = peer.call(data.peerId, localStreamRef);
+            if (localStreamRef.current) {
+                const call = peer.call(data.peerId, localStreamRef.current);
                 call.on('stream', (userVideoStream) => {
                     addVideoStream(data.peerId, userVideoStream);
                 });
@@ -74,7 +75,7 @@ export const RoomPage = () => {
         navigator.mediaDevices.getUserMedia({ video: true, audio: true })
             .then(stream => {
                 setLocalStream(stream);
-                localStreamRef = stream;
+                localStreamRef.current = stream;
 
                 peer.on('open', (id) => {
                     setMyPeerId(id);
@@ -93,7 +94,7 @@ export const RoomPage = () => {
 
         // Cleanup function
         return () => {
-            localStreamRef?.getTracks().forEach(track => track.stop());
+            localStreamRef.current?.getTracks().forEach(track => track.stop());
             peerInstanceRef.current?.destroy();
             socketService.disconnect();
         };
@@ -131,10 +132,39 @@ export const RoomPage = () => {
         }
     };
 
+    // Leave room function
+    const leaveRoom = () => {
+        // Stop all local media tracks
+        localStreamRef.current?.getTracks().forEach(track => track.stop());
+        
+        // Close all peer connections
+        callsRef.current.forEach(call => call.close());
+        callsRef.current.clear();
+        
+        // Destroy peer instance
+        peerInstanceRef.current?.destroy();
+        
+        // Disconnect socket
+        socketService.disconnect();
+        
+        // Navigate back to study rooms page
+        navigate('/study-rooms');
+    };
+
     return (
         <div className="flex h-screen p-4 space-x-4">
             <div className="flex-1 flex flex-col">
-                <h1 className="text-3xl font-bold mb-4">Study Room: {roomId}</h1>
+                <div className="flex justify-between items-center mb-4">
+                    <h1 className="text-3xl font-bold">Study Room: {roomId}</h1>
+                    <button
+                        onClick={leaveRoom}
+                        className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold transition-colors shadow-md"
+                        title="Leave Room"
+                    >
+                        <LogOut size={20} />
+                        <span>Leave Room</span>
+                    </button>
+                </div>
                 
                 {/* Video Grid */}
                 <div className="flex-grow grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-gray-100 rounded-md overflow-y-auto">
