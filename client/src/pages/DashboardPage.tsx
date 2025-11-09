@@ -292,11 +292,12 @@ export const DashboardPage = () => {
                         <Zap size={28} className="text-indigo-600" />
                         Quick Actions
                     </h2>
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                        <ActionCard icon={<Users />} title="Join Study Room" to="/study-rooms" color="blue" />
-                        <ActionCard icon={<Timer />} title="Start Timer" to="/pomodoro" color="orange" />
+                    <div className="flex flex-wrap justify-center gap-3">
+                        <ActionCard icon={<Users />} title="Study Groups" to="/study-groups" color="blue" />
+                        <ActionCard icon={<CheckCircle />} title="Tasks" to="/tasks" color="green" />
+                        <ActionCard icon={<Timer />} title="Pomodoro" to="/pomodoro" color="orange" />
                         <ActionCard icon={<Plus />} title="Add Note" to="/notes" color="green" />
-                        <ActionCard icon={<BookOpen />} title="Review Cards" to="/flashcards" color="purple" />
+                        <ActionCard icon={<BookOpen />} title="Flashcards" to="/flashcards" color="purple" />
                     </div>
                 </div>
             </div>
@@ -381,7 +382,7 @@ const StatCard = ({ icon, title, value, unit, color, isText = false, trend }: an
     );
 };
 
-// Enhanced Action Card Component
+// Enhanced Action Card Component with fixed sizing
 const ActionCard = ({ icon, title, to, color }: any) => {
     const colors: { [key: string]: string } = {
         blue: 'from-blue-500 to-indigo-600',
@@ -393,16 +394,16 @@ const ActionCard = ({ icon, title, to, color }: any) => {
     return (
         <Link
             to={to}
-            className="group bg-white bg-opacity-80 backdrop-blur-lg p-6 rounded-2xl shadow-lg hover:shadow-2xl transition-all hover:scale-110 flex flex-col items-center justify-center text-center border border-white relative overflow-hidden"
+            className="group bg-white bg-opacity-80 backdrop-blur-lg p-4 rounded-2xl shadow-lg hover:shadow-2xl transition-all hover:scale-105 flex flex-col items-center justify-center text-center border border-white relative overflow-hidden w-32 h-32"
         >
             {/* Gradient overlay on hover */}
             <div className={`absolute inset-0 bg-gradient-to-br ${colors[color]} opacity-0 group-hover:opacity-10 transition-opacity`} />
             
-            <div className="relative z-10">
-                <div className={`bg-gradient-to-br ${colors[color]} p-4 rounded-2xl mb-3 group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg`}>
-                    {React.cloneElement(icon, { size: 28, className: "text-white" })}
+            <div className="relative z-10 flex flex-col items-center justify-center h-full w-full">
+                <div className={`bg-gradient-to-br ${colors[color]} p-3 rounded-xl mb-2 group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg flex items-center justify-center`}>
+                    {React.cloneElement(icon, { size: 24, className: "text-white" })}
                 </div>
-                <p className="font-semibold text-gray-800 group-hover:text-gray-900">{title}</p>
+                <p className="text-sm font-semibold text-gray-800 group-hover:text-gray-900">{title}</p>
             </div>
         </Link>
     );

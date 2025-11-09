@@ -41,8 +41,9 @@ export const MoodSelector = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md p-6 mt-8">
-      <h2 className="text-xl font-bold text-gray-800 mb-4">
+    <div className="bg-white bg-opacity-80 backdrop-blur-lg rounded-2xl shadow-xl p-6 border border-white">
+      <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <span className="text-2xl">💭</span>
         How are you feeling today?
       </h2>
       <div className="flex justify-center gap-4 mb-4">
@@ -50,20 +51,29 @@ export const MoodSelector = () => {
           <button
             key={m.id}
             onClick={() => setSelectedMood(m.id)}
-            className={`flex flex-col items-center p-3 rounded-xl transition-all ${
+            className={`group flex flex-col items-center justify-center p-4 rounded-xl transition-all w-24 h-24 ${
               selectedMood === m.id
-                ? `${m.color} text-white scale-105`
-                : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                ? `${m.color} text-white shadow-lg scale-105`
+                : "bg-gray-100 hover:bg-gray-200 text-gray-700 hover:scale-105"
             }`}
           >
-            <div className="w-8 h-8">{m.icon}</div>
-            <span className="mt-1 text-sm">{m.label}</span>
+            <div className="flex items-center justify-center mb-2">
+              {React.cloneElement(m.icon, { 
+                size: 28,
+                className: selectedMood === m.id ? "text-white" : "text-gray-600"
+              })}
+            </div>
+            <span className={`text-xs font-semibold ${
+              selectedMood === m.id ? "text-white" : "text-gray-700"
+            }`}>
+              {m.label}
+            </span>
           </button>
         ))}
       </div>
       {suggestion && (
-        <div className="text-center text-gray-700 font-medium bg-indigo-50 p-3 rounded-lg">
-          {suggestion}
+        <div className="text-center text-gray-700 font-medium bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100 animate-fadeIn">
+          💡 {suggestion}
         </div>
       )}
     </div>
