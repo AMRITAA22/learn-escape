@@ -4,7 +4,7 @@ import dashboardService from '../services/dashboardService';
 import pomodoroService from '../services/pomodoroService';
 import achievementsService from '../services/achievementsService';
 import { Link } from 'react-router-dom';
-import { Clock, CheckCircle, Zap, Award, BookOpen, Plus, Timer, Users, Target, Star, TrendingUp, Sparkles } from 'lucide-react';
+import { Clock, CheckCircle, Zap, Award, BookOpen, Plus, Timer, Users, Target, Star, TrendingUp, Sparkles, MessageSquare } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MoodSelector } from "../components/dashboard/MoodSelector";
 
@@ -298,6 +298,7 @@ export const DashboardPage = () => {
                         <ActionCard icon={<Timer />} title="Pomodoro" to="/pomodoro" color="orange" />
                         <ActionCard icon={<Plus />} title="Add Note" to="/notes" color="green" />
                         <ActionCard icon={<BookOpen />} title="Flashcards" to="/flashcards" color="purple" />
+                        <ActionCard icon={<MessageSquare />} title="AI Assistant" to="/ai-assistant" color="blue" />
                     </div>
                 </div>
             </div>
