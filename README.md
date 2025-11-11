@@ -169,47 +169,6 @@ LearnEscape uses JWT (JSON Web Tokens) for secure authentication:
 3. **Protected Routes**: Token required for all API calls
 4. **Auto-logout**: Token expires after 30 days
 
-## 📡 API Endpoints
-
-### Auth Routes
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-
-### Notes Routes
-- `GET /api/notes` - Get all user notes
-- `GET /api/notes/:id` - Get single note
-- `POST /api/notes` - Create note
-- `PUT /api/notes/:id` - Update note
-- `DELETE /api/notes/:id` - Delete note
-
-### Flashcards Routes
-- `GET /api/flashcards` - Get all decks
-- `GET /api/flashcards/:id` - Get single deck
-- `POST /api/flashcards` - Create deck
-- `PUT /api/flashcards/:id` - Update deck
-- `DELETE /api/flashcards/:id` - Delete deck
-- `POST /api/flashcards/:id/cards` - Add card to deck
-- `PUT /api/flashcards/:deckId/cards/:cardId` - Update card
-- `DELETE /api/flashcards/:deckId/cards/:cardId` - Delete card
-
-### Tasks Routes
-- `GET /api/tasks` - Get all tasks
-- `POST /api/tasks` - Create task
-- `PUT /api/tasks/:id` - Update task
-- `DELETE /api/tasks/:id` - Delete task
-
-### Study Groups Routes
-- `GET /api/study-groups` - Get user's groups
-- `GET /api/study-groups/:id` - Get group details
-- `POST /api/study-groups` - Create group
-- `POST /api/study-groups/join` - Join group with code
-- `DELETE /api/study-groups/:id` - Delete group
-- `DELETE /api/study-groups/:id/leave` - Leave group
-- `POST /api/study-groups/:id/goals` - Add goal
-- `PUT /api/study-groups/:id/goals/:goalId` - Update goal
-- `DELETE /api/study-groups/:id/goals/:goalId` - Delete goal
-- `POST /api/study-groups/:id/resources` - Share resource
-- `POST /api/study-groups/:id/chat` - Send message
 
 ## 🎯 Key Features Explained
 
@@ -299,3 +258,4 @@ git push heroku main
 - **Amrita** - *Initial work* - [AMRITAA22](https://github.com/AMRITAA22)
 
 ---
+
